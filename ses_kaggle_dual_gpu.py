@@ -52,7 +52,7 @@ class Config:
     DATA_DIR = Path("/kaggle/working/data") if Path("/kaggle").exists() else Path("./data")
 
     EPOCHS = 50
-    BATCH_SIZE = 128
+    BATCH_SIZE = 256
     LR = 0.1
     MOMENTUM = 0.9
     WEIGHT_DECAY = 5e-4
