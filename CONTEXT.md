@@ -89,8 +89,9 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | File | Funzione | GPU | Stato |
 |------|----------|-----|-------|
 | `ses_phase3.py` | Phase 3 completo (Exp 10+11+12) per Kaggle T4 | T4 | Exp 10 completato |
-| `ses_phase3_resume.py` | Phase 3 senza Exp 10 (già fatto) | T4 | Pronto per Exp 12 |
+| `ses_phase3_resume.py` | Phase 3 senza Exp 10 (già fatto) | T4 | Superseded da dual-gpu |
 | `ses_resnet50_tinyimagenet.py` | Exp 11: ResNet-50 Tiny-ImageNet standalone | L40S | ✅ Completato |
+| `ses_kaggle_dual_gpu.py` | Exp 12 + WRN-28-10 in parallelo | 2× T4 | ⏳ Da runnare |
 
 ### Risultati JSON
 
@@ -119,15 +120,16 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 
 ### Priorità alta — completare Phase 3
 
-- [ ] **Exp 12: SES + Mixup/CutMix (CIFAR-100)**
-  - Script: `ses_phase3_resume.py` (pronto)
-  - GPU: Kaggle T4 (~2.5h)
-  - 6 config: Baseline, SES, Mixup, SES+Mixup, CutMix, SES+CutMix
-  - Obiettivo: mostrare che SES è ortogonale ad augmentation moderne → si possono combinare
-  - Impatto: risponde alla critica "SES sostituisce o complementa le tecniche esistenti?"
+- [ ] **Runnare `ses_kaggle_dual_gpu.py` su Kaggle 2× T4**
+  - GPU 0: WideResNet-28-10 CIFAR-100 (Baseline + SES) — architecture generalization
+  - GPU 1: Exp 12 SES + Mixup/CutMix CIFAR-100 (6 config) — ortogonalità con augmentation
+  - Mixed Precision FP16 (Tensor Cores T4), SES regularizer in FP32
+  - Parallelismo via subprocess (non threading — GIL serializza su Kaggle)
+  - Wall time stimato: ~3h (vs ~5.5h sequential)
+  - Comando: `!python ses_kaggle_dual_gpu.py`
 
-- [ ] **Aggiornare paper con Exp 12**
-  - Aggiungere sezione Exp 12 nel paper
+- [ ] **Aggiornare paper con Exp 12 + WRN**
+  - Aggiungere sezione Exp 12 (Mixup/CutMix) e Exp 13 (WRN-28-10) nel paper
   - Aggiornare abstract, summary table, conclusion
   - Aggiornare `arxiv_submission.zip`
 
@@ -181,6 +183,9 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 5. **Spectral norm API** → `nn.utils.spectral_norm(module, name='weight')` sul modulo diretto
 6. **`total_memory` non `total_mem`** → attributo corretto di `CudaDeviceProperties`
 7. **Variabili locali in closure** → sempre hardcodare `depth=28, widen_factor=10` nel builder
+8. **ses_regularizer hardcoded `cuda:0`** → usare `activations[0].device` per multi-GPU
+9. **Threading su Kaggle non parallelizza** → GIL serializza CPU, usare subprocess con `CUDA_VISIBLE_DEVICES`
+10. **T4 non supporta BFloat16** → usare `torch.float16` con `GradScaler`, non `bfloat16`
 
 ---
 
