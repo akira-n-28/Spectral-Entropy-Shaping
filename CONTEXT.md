@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 22+ pagine, 14 esperimenti, 34 references
+**Paper**: 22+ pagine, 15 esperimenti, 35 references
 
 ---
 
@@ -36,6 +36,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 12 | SES + Mixup/CutMix (CIFAR-100) | ✅ | **SES ortogonale: +0.26-0.79pp acc, +0.61-0.94pp rob su ogni combinazione** |
 | P3 | 13 | WideResNet-28-10 (CIFAR-100) | ✅ | Acc pari (−0.31pp), Rob +0.54pp — neutro su architetture large |
 | P3 | 14 | Vision Transformers (CIFAR-100) | ✅ | **ViT-S: +1.73pp acc, +1.33pp rob; ViT-T: +0.72pp acc, +1.31pp rob** |
+| P3 | 15 | SES + ViT + Data Augmentation (CIFAR-100) | ✅ | **SES additivo con RA (+0.91 acc, +0.96 rob), forte con Mixup (+2.06 acc, +2.52 rob)** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -58,6 +59,17 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 
 Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 
+### SES è ortogonale alle augmentation su ViT (Exp 15)
+
+| Confronto (ViT-Small/4) | Δ Acc | Δ Rob | Interpretazione |
+|---|---|---|---|
+| RA → RA+SES | +0.91pp | +0.96pp | SES additivo con RandAugment |
+| RA+Mixup → RA+SES+Mixup | **+2.06pp** | **+2.52pp** | SES fortemente additivo con Mixup |
+| RA+CutMix → RA+SES+CutMix | −0.65pp | +0.25pp | SES neutro con CutMix |
+
+Nota: Mixup/CutMix danneggiano ViT accuracy (−6.6/−5.6pp) quando combinati con RandAugment — underfitting severo.
+SES aiuta a contrastare l'underfitting da Mixup.
+
 ### Predizioni teoriche
 
 | ID | Predizione | Status |
@@ -77,7 +89,7 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 
 | File | Funzione |
 |------|----------|
-| `spectral_entropy_shaping.tex` | Sorgente LaTeX del paper (22 pagine, 11 esperimenti) |
+| `spectral_entropy_shaping.tex` | Sorgente LaTeX del paper (22+ pagine, 15 esperimenti) |
 | `spectral_entropy_shaping.pdf` | PDF compilato |
 | `arxiv_submission.zip` | Pacchetto pronto per arXiv (.tex + 13 figure .png) |
 
@@ -106,6 +118,9 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `18_vit_comparison.png` | Exp 14: ViT-Tiny vs ViT-Small comparison |
 | `18a_vit_small_bars.png` | Exp 14: ViT-Small bar chart |
 | `18b_vit_tiny_bars.png` | Exp 14: ViT-Tiny bar chart |
+| `19_vit_augmentation.png` | Exp 15: ViT+Aug bar chart |
+| `19b_vit_augmentation_curves.png` | Exp 15: ViT+Aug training curves |
+| `19c_vit_augmentation_percorruption.png` | Exp 15: per-corruption ViT+Aug |
 
 ### Script esperimenti
 
@@ -116,6 +131,7 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `ses_resnet50_tinyimagenet.py` | Exp 11: ResNet-50 Tiny-ImageNet standalone | L40S | ✅ Completato |
 | `ses_kaggle_dual_gpu.py` | Exp 12 + Exp 13 (WRN) in parallelo | 2× T4 | ✅ Completato (batch 512, FP16) |
 | `ses_vit_experiment.py` | Exp 14: ViT-Small + ViT-Tiny in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
+| `ses_vit_augmentation.py` | Exp 15: ViT-S + RA/Mixup/CutMix in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, RA) |
 
 ### Risultati JSON
 
@@ -129,6 +145,10 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `vit_small_results.json` | Exp 14: ViT-Small/4 baseline vs SES (con history) |
 | `vit_tiny_results.json` | Exp 14: ViT-Tiny/4 baseline vs SES (con history) |
 | `vit_summary.json` | Exp 14: summary senza history |
+| `vit_aug_results.json` | Exp 15: ViT+Aug 6 config (con history) |
+| `vit_aug_summary.json` | Exp 15: summary senza history |
+| `gpu0_results.json` | Exp 15: GPU0 results (RA, RA+SES, RA+Mixup) |
+| `gpu1_results.json` | Exp 15: GPU1 results (RA+SES+Mixup, RA+CutMix, RA+SES+CutMix) |
 
 ### Checkpoint modelli
 
@@ -159,9 +179,9 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14** — ✅ 15 feb 2026
-  - Sezioni Exp 12, 13, 14 aggiunte nel .tex
-  - Abstract, intro, summary, conclusion, limitations aggiornati
+- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14 + Exp 15** — ✅ 15 feb 2026
+  - Sezioni Exp 12, 13, 14, 15 aggiunte nel .tex
+  - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
 ### Priorità media — rafforzare risultati
@@ -225,16 +245,17 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 
 ## Setup tecnico di riferimento
 
-| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) |
-|-----------|-------------------|------------------------|----------------------|--------------|
-| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) |
-| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches |
-| Immagini | 32×32 | 64×64 | 32×32 | 32×32 |
-| Batch | 256 | 256 | 512 | 512 |
-| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 |
-| Epoch | 50 | 60 | 50 | 50 |
-| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep |
-| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
-| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) |
-| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
-| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) |
+| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) | ViT+Aug (Exp 15) |
+|-----------|-------------------|------------------------|----------------------|--------------|------------------|
+| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) | ViT-Small/4 (22M) |
+| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches | patch_size=4, 64 patches |
+| Immagini | 32×32 | 64×64 | 32×32 | 32×32 | 32×32 |
+| Batch | 256 | 256 | 512 | 512 | 512 |
+| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 | AdamW lr=1e-3 wd=0.05 |
+| Epoch | 50 | 60 | 50 | 50 | 50 |
+| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep | Cosine + warmup 5ep |
+| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
+| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) | 12 (all transformer blocks) |
+| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
+| Augmentation | Standard | Standard | Standard / Mixup / CutMix | Standard | RA(n=2,m=9) / Mixup / CutMix |
+| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) |
