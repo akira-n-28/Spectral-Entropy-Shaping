@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 22+ pagine, 15 esperimenti, 35 references
+**Paper**: 24+ pagine, 16 esperimenti, 35 references
 
 ---
 
@@ -37,6 +37,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 13 | WideResNet-28-10 (CIFAR-100) | ✅ | Acc pari (−0.31pp), Rob +0.54pp — neutro su architetture large |
 | P3 | 14 | Vision Transformers (CIFAR-100) | ✅ | **ViT-S: +1.73pp acc, +1.33pp rob; ViT-T: +0.72pp acc, +1.31pp rob** |
 | P3 | 15 | SES + ViT + Data Augmentation (CIFAR-100) | ✅ | **SES additivo con RA (+0.91 acc, +0.96 rob), forte con Mixup (+2.06 acc, +2.52 rob)** |
+| P3 | 16 | Adaptive β Scheduling (CIFAR-100) | ✅ | **Warmup hurt (−0.73 to −1.22pp), Reverse ≈ Fixed, β=0.7 near-optimal** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -70,6 +71,20 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 Nota: Mixup/CutMix danneggiano ViT accuracy (−6.6/−5.6pp) quando combinati con RandAugment — underfitting severo.
 SES aiuta a contrastare l'underfitting da Mixup.
 
+### Adaptive β scheduling — Fixed β=0.7 è quasi ottimale (Exp 16)
+
+| Schedule | Acc | Gap | Rob | Δ Acc vs Fixed | Δ Rob vs Fixed |
+|---|---|---|---|---|---|
+| Baseline (no SES) | 73.00 | 26.99 | 45.21 | — | — |
+| Fixed β=0.7 | 73.34 | 26.67 | **46.08** | — | — |
+| Linear 0.3→0.9 | 72.61 | 27.17 | 45.27 | −0.73pp | −0.81pp |
+| Cosine 0.3→0.9 | 72.30 | 27.62 | 45.05 | −1.04pp | −1.03pp |
+| **Reverse 0.9→0.3** | **73.43** | **26.21** | 46.14 | +0.09pp | +0.06pp |
+| Step 0.3→0.7→0.9 | 72.12 | 27.43 | 45.76 | −1.22pp | −0.32pp |
+
+**Risultato chiave**: Warmup β (basso→alto) **danneggia** performance. Reverse (alto→basso) ≈ Fixed.
+Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo iperparametro.
+
 ### Predizioni teoriche
 
 | ID | Predizione | Status |
@@ -79,7 +94,7 @@ SES aiuta a contrastare l'underfitting da Mixup.
 | P3 | Controllable effective rank | ✅ |
 | P4 | Reduced Jacobian κ | ✅ (2.45× riduzione) |
 | P5 | No collapse | ✅ |
-| P6 | β controls dynamics | ∼ (parziale) |
+| P6 | β controls dynamics | ∼ (parziale — Exp 16: warmup hurt, reverse ≈ fixed, β=0.7 quasi ottimale) |
 
 ---
 
@@ -89,7 +104,7 @@ SES aiuta a contrastare l'underfitting da Mixup.
 
 | File | Funzione |
 |------|----------|
-| `spectral_entropy_shaping.tex` | Sorgente LaTeX del paper (22+ pagine, 15 esperimenti) |
+| `spectral_entropy_shaping.tex` | Sorgente LaTeX del paper (24+ pagine, 16 esperimenti) |
 | `spectral_entropy_shaping.pdf` | PDF compilato |
 | `arxiv_submission.zip` | Pacchetto pronto per arXiv (.tex + 13 figure .png) |
 
@@ -121,6 +136,10 @@ SES aiuta a contrastare l'underfitting da Mixup.
 | `19_vit_augmentation.png` | Exp 15: ViT+Aug bar chart |
 | `19b_vit_augmentation_curves.png` | Exp 15: ViT+Aug training curves |
 | `19c_vit_augmentation_percorruption.png` | Exp 15: per-corruption ViT+Aug |
+| `20_adaptive_beta.png` | Exp 16: adaptive β bar chart |
+| `20b_adaptive_beta_curves.png` | Exp 16: β schedules + accuracy curves |
+| `20c_adaptive_beta_percorruption.png` | Exp 16: per-corruption adaptive β |
+| `20d_adaptive_beta_delta.png` | Exp 16: Δ vs Fixed β=0.7 |
 
 ### Script esperimenti
 
@@ -132,6 +151,7 @@ SES aiuta a contrastare l'underfitting da Mixup.
 | `ses_kaggle_dual_gpu.py` | Exp 12 + Exp 13 (WRN) in parallelo | 2× T4 | ✅ Completato (batch 512, FP16) |
 | `ses_vit_experiment.py` | Exp 14: ViT-Small + ViT-Tiny in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
 | `ses_vit_augmentation.py` | Exp 15: ViT-S + RA/Mixup/CutMix in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, RA) |
+| `ses_adaptive_beta.py` | Exp 16: Adaptive β scheduling (6 config) | 2× T4 | ✅ Completato (batch 512, FP16) |
 
 ### Risultati JSON
 
@@ -149,6 +169,10 @@ SES aiuta a contrastare l'underfitting da Mixup.
 | `vit_aug_summary.json` | Exp 15: summary senza history |
 | `gpu0_results.json` | Exp 15: GPU0 results (RA, RA+SES, RA+Mixup) |
 | `gpu1_results.json` | Exp 15: GPU1 results (RA+SES+Mixup, RA+CutMix, RA+SES+CutMix) |
+| `adaptive_beta_results.json` | Exp 16: 6 β schedule configs (con history) |
+| `adaptive_beta_summary.json` | Exp 16: summary senza history |
+| `gpu0_beta_results.json` | Exp 16: GPU0 (baseline, fixed, linear) |
+| `gpu1_beta_results.json` | Exp 16: GPU1 (cosine, reverse, step) |
 
 ### Checkpoint modelli
 
@@ -179,8 +203,8 @@ SES aiuta a contrastare l'underfitting da Mixup.
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14 + Exp 15** — ✅ 15 feb 2026
-  - Sezioni Exp 12, 13, 14, 15 aggiunte nel .tex
+- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14 + Exp 15 + Exp 16** — ✅ 15 feb 2026
+  - Sezioni Exp 12, 13, 14, 15, 16 aggiunte nel .tex
   - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
@@ -245,17 +269,17 @@ SES aiuta a contrastare l'underfitting da Mixup.
 
 ## Setup tecnico di riferimento
 
-| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) | ViT+Aug (Exp 15) |
-|-----------|-------------------|------------------------|----------------------|--------------|------------------|
-| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) | ViT-Small/4 (22M) |
-| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches | patch_size=4, 64 patches |
-| Immagini | 32×32 | 64×64 | 32×32 | 32×32 | 32×32 |
-| Batch | 256 | 256 | 512 | 512 | 512 |
-| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 | AdamW lr=1e-3 wd=0.05 |
-| Epoch | 50 | 60 | 50 | 50 | 50 |
-| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep | Cosine + warmup 5ep |
-| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
-| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) | 12 (all transformer blocks) |
-| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
-| Augmentation | Standard | Standard | Standard / Mixup / CutMix | Standard | RA(n=2,m=9) / Mixup / CutMix |
-| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) |
+| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) | ViT+Aug (Exp 15) | β Sched (Exp 16) |
+|-----------|-------------------|------------------------|----------------------|--------------|------------------|------------------|
+| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) | ViT-Small/4 (22M) | ResNet-18 (11M) |
+| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches | patch_size=4, 64 patches | conv1 3×3 s1, no maxpool |
+| Immagini | 32×32 | 64×64 | 32×32 | 32×32 | 32×32 | 32×32 |
+| Batch | 256 | 256 | 512 | 512 | 512 | 512 |
+| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 | AdamW lr=1e-3 wd=0.05 | SGD lr=0.1 mom=0.9 wd=5e-4 |
+| Epoch | 50 | 60 | 50 | 50 | 50 | 50 |
+| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep | Cosine + warmup 5ep | MultiStep [20,35,45] |
+| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
+| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) | 12 (all transformer blocks) | 9 (all blocks + avgpool) |
+| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β adaptive |
+| Augmentation | Standard | Standard | Standard / Mixup / CutMix | Standard | RA(n=2,m=9) / Mixup / CutMix | Standard |
+| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) |
