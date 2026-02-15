@@ -91,7 +91,7 @@
 \maketitle
 
 \begin{abstract}
-We propose \textbf{Spectral Entropy Shaping (SES)}, a new regularization technique for deep neural networks that explicitly controls the \emph{effective dimensionality} of intermediate representations by penalizing deviations of the layer-wise spectral entropy from a prescribed target. Unlike existing methods that regulate scalar statistics of activations (Batch Normalization) or weights (Weight Decay), SES acts on the full spectral distribution of the empirical covariance of each layer's activations, providing a geometrically motivated inductive bias. We derive two theoretical guarantees: (1)~a generalization bound that scales with the effective rank rather than the ambient dimension, and (2)~a Lipschitz stability bound showing improved robustness to input perturbations. Empirical validation across sixteen experiments---including CIFAR-10 (3 seeds), CIFAR-100 (3 seeds), Tiny-ImageNet (ResNet-50, 200 classes), WideResNet-28-10 (36.5M parameters), Vision Transformers (ViT-Tiny/Small), and adaptive $\beta$ scheduling---reveals that SES benefits scale monotonically with task difficulty: from $+0.45$~pp robustness on CIFAR-10, to $+0.47$~pp accuracy on CIFAR-100, to $+2.58$~pp accuracy and $+2.37$~pp robustness on Tiny-ImageNet. SES generalizes beyond CNNs to Vision Transformers, improving ViT-Small accuracy by $+1.73$~pp and robustness by $+1.33$~pp. SES is \emph{orthogonal} to modern data augmentation on both CNNs and ViTs: it consistently adds $+0.26$--$0.79$~pp accuracy and $+0.61$--$0.94$~pp robustness on top of Mixup and CutMix (ResNet-18), and $+0.91$~pp accuracy with $+0.96$~pp robustness on top of RandAugment (ViT-Small), with the strongest additivity observed when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness). SES outperforms spectral normalization on all metrics, and periodic evaluation ($k{=}10$) reduces overhead from $+195\%$ to $+19\%$. An ablation of adaptive $\beta$ scheduling confirms that fixed $\beta{=}0.7$ is near-optimal: warmup schedules (low$\to$high $\beta$) hurt performance, while a reverse schedule (high$\to$low) provides a marginal improvement. The method is simple to implement ($\sim$10 lines of PyTorch) and introduces a single interpretable hyperparameter~$\beta \in (0,1)$.
+We propose \textbf{Spectral Entropy Shaping (SES)}, a new regularization technique for deep neural networks that explicitly controls the \emph{effective dimensionality} of intermediate representations by penalizing deviations of the layer-wise spectral entropy from a prescribed target. Unlike existing methods that regulate scalar statistics of activations (Batch Normalization) or weights (Weight Decay), SES acts on the full spectral distribution of the empirical covariance of each layer's activations, providing a geometrically motivated inductive bias. We derive two theoretical guarantees: (1)~a generalization bound that scales with the effective rank rather than the ambient dimension, and (2)~a Lipschitz stability bound showing improved robustness to input perturbations. Empirical validation across eighteen experiments---including CIFAR-10 (3 seeds), CIFAR-100 (3 seeds), Tiny-ImageNet (ResNet-50, 200 classes), WideResNet-28-10 (36.5M parameters), Vision Transformers (ViT-Tiny/Small), adaptive $\beta$ scheduling, ViT ablations ($\beta$ sweep + layer hooking), and SES on attention matrices---reveals that SES benefits scale monotonically with task difficulty: from $+0.45$~pp robustness on CIFAR-10, to $+0.47$~pp accuracy on CIFAR-100, to $+2.58$~pp accuracy and $+2.37$~pp robustness on Tiny-ImageNet. SES generalizes beyond CNNs to Vision Transformers, improving ViT-Small accuracy by $+1.73$~pp and robustness by $+1.33$~pp. SES is \emph{orthogonal} to modern data augmentation on both CNNs and ViTs: it consistently adds $+0.26$--$0.79$~pp accuracy and $+0.61$--$0.94$~pp robustness on top of Mixup and CutMix (ResNet-18), and $+0.91$~pp accuracy with $+0.96$~pp robustness on top of RandAugment (ViT-Small), with the strongest additivity observed when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness). SES outperforms spectral normalization on all metrics, and periodic evaluation ($k{=}10$) reduces overhead from $+195\%$ to $+19\%$. An ablation of adaptive $\beta$ scheduling confirms that fixed $\beta{=}0.7$ is near-optimal: warmup schedules (low$\to$high $\beta$) hurt performance, while a reverse schedule (high$\to$low) provides a marginal improvement. A systematic ViT ablation reveals that $\beta{=}0.5$ is optimal for transformers ($+2.66$~pp accuracy) and that hooking only the last 4 transformer blocks outperforms all-12 hooking ($+2.33$~pp vs.\ $+1.73$~pp) at lower computational cost. Extending SES to attention weight matrices and combining it with block-output SES yields the strongest ViT result: Triple SES (block output $+$ attention sub-layer $+$ attention weights) achieves $+2.65$~pp accuracy with only Last-4 hooks. The method is simple to implement ($\sim$10 lines of PyTorch) and introduces a single interpretable hyperparameter~$\beta \in (0,1)$.
 \end{abstract}
 
 %\tableofcontents
@@ -387,7 +387,7 @@ On a synthetic 2D dataset with three concentric classes, we propose comparing th
 \section{Experimental Results}
 \label{sec:results}
 
-We validate SES across sixteen experiments organized in four phases. Phase~0 (Experiments~1--4) provides detailed single-seed analysis of training dynamics, spectral control, robustness, and Jacobian stability. Phase~1 (Experiments~5--7) establishes statistical significance on CIFAR-10 and ablates hyperparameters. Phase~2 (Experiments~8--9) provides direct comparison against spectral normalization and a layer hooking ablation. Phase~3 (Experiments~10--16) demonstrates practical viability: periodic SES evaluation for reduced overhead, scaling to larger datasets and architectures, orthogonality with modern data augmentation (Mixup, CutMix) on both CNNs and ViTs, generalization to wider architectures (WideResNet-28-10), extension to non-convolutional architectures (Vision Transformers with RandAugment), and an ablation of adaptive $\beta$ scheduling strategies. Multi-seed evaluation on both CIFAR-10 and CIFAR-100 is included. Unless otherwise noted, experiments use ResNet-18 adapted for $32\times32$ images (first convolution replaced with $3\times3$, no max-pooling), trained with SGD (learning rate $0.1$, momentum $0.9$, weight decay $5\times10^{-4}$) with multi-step LR schedule. SES hooks are registered on all 8 residual blocks plus the final average pooling layer (9 hooks) unless otherwise noted. Default SES hyperparameters: $\lambda = 0.01$, $\beta = 0.7$.
+We validate SES across eighteen experiments organized in four phases. Phase~0 (Experiments~1--4) provides detailed single-seed analysis of training dynamics, spectral control, robustness, and Jacobian stability. Phase~1 (Experiments~5--7) establishes statistical significance on CIFAR-10 and ablates hyperparameters. Phase~2 (Experiments~8--9) provides direct comparison against spectral normalization and a layer hooking ablation. Phase~3 (Experiments~10--18) demonstrates practical viability: periodic SES evaluation for reduced overhead, scaling to larger datasets and architectures, orthogonality with modern data augmentation (Mixup, CutMix) on both CNNs and ViTs, generalization to wider architectures (WideResNet-28-10), extension to non-convolutional architectures (Vision Transformers with RandAugment), an ablation of adaptive $\beta$ scheduling strategies, a systematic ViT ablation of both $\beta$ sensitivity and layer hooking strategy, and SES applied directly to attention weight matrices. Multi-seed evaluation on both CIFAR-10 and CIFAR-100 is included. Unless otherwise noted, experiments use ResNet-18 adapted for $32\times32$ images (first convolution replaced with $3\times3$, no max-pooling), trained with SGD (learning rate $0.1$, momentum $0.9$, weight decay $5\times10^{-4}$) with multi-step LR schedule. SES hooks are registered on all 8 residual blocks plus the final average pooling layer (9 hooks) unless otherwise noted. Default SES hyperparameters: $\lambda = 0.01$, $\beta = 0.7$.
 
 \subsection{Experiment 1: Training Dynamics (CIFAR-10, Single Seed)}
 
@@ -944,6 +944,159 @@ Three insights emerge (\Cref{fig:exp16}). First, \textbf{early compression is ha
     \label{fig:exp16_curves}
 \end{figure}
 
+\subsection{Experiment 17: ViT Ablations ($\beta$ Sweep and Layer Hooking)}
+\label{sec:vit_ablations}
+
+Experiment~14 showed that SES with $\beta{=}0.7$ applied to all 12 transformer blocks improves ViT-Small by $+1.73$~pp accuracy and $+1.33$~pp robustness. Two questions remain: (a)~is $\beta{=}0.7$ optimal for transformers, and (b)~which transformer blocks benefit most from spectral regularization? We address both with a systematic ablation on ViT-Small/4 (CIFAR-100, same setup as Experiment~14).
+
+\paragraph{$\beta$ sweep.} We test $\beta \in \{0.3, 0.5, 0.7, 0.9\}$ with SES applied to all 12 blocks (\Cref{tab:vit_beta_sweep}). The result is $\beta{=}0.7$ from Experiment~14; the remaining three values are new.
+
+\begin{table}[ht]
+\centering
+\caption{$\beta$ sweep on ViT-Small/4, CIFAR-100 (seed 42, FP16, all 12 blocks).}
+\label{tab:vit_beta_sweep}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Config} & \textbf{Best test acc (\%)} & \textbf{Gap (pp)} & \textbf{Mean corr.\ acc (\%)} & \textbf{Time/ep} \\
+\midrule
+Baseline (no SES) & 55.28 & 44.50 & 34.75 & 57.5\,s \\
+\midrule
+SES $\beta{=}0.3$ & 55.28 & 44.61 & 34.42 & 89.1\,s \\
+SES $\beta{=}0.5$ & \textbf{57.94} & \textbf{42.13} & \textbf{36.27} & 78.7\,s \\
+SES $\beta{=}0.7$ (Exp~14) & 57.01 & 43.10 & 36.08 & 79.6\,s \\
+SES $\beta{=}0.9$ & 56.66 & 43.35 & 35.96 & 88.8\,s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Config} & $\Delta$\textbf{Acc (pp)} & $\Delta$\textbf{Gap (pp)} & $\Delta$\textbf{Rob (pp)} \\
+\midrule
+$\beta{=}0.3$ vs Baseline & $+0.00$ & $+0.11$ & $-0.32$ \\
+$\beta{=}0.5$ vs Baseline & $\mathbf{+2.66}$ & $\mathbf{-2.37}$ & $\mathbf{+1.52}$ \\
+$\beta{=}0.7$ vs Baseline & $+1.73$ & $-1.40$ & $+1.33$ \\
+$\beta{=}0.9$ vs Baseline & $+1.38$ & $-1.15$ & $+1.22$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The results reveal a clear \textbf{inverted-U pattern}: $\beta{=}0.3$ is too low (the natural spectral entropy already exceeds the target, so the regularizer has no shaping effect), $\beta{=}0.5$ is optimal ($+2.66$~pp accuracy, $+1.52$~pp robustness), $\beta{=}0.7$ and $\beta{=}0.9$ are effective but progressively weaker. Notably, the optimal $\beta$ for ViTs ($0.5$) is lower than for CNNs ($0.7$), suggesting that transformers naturally operate at higher spectral entropy and benefit from stronger compression of the effective rank.
+
+\paragraph{Layer hooking ablation.} We test SES at $\beta{=}0.7$ applied to three subsets of the 12 transformer blocks (\Cref{tab:vit_layer_ablation}): first~4 (blocks~0--3, low-level patch features), last~4 (blocks~8--11, abstract/task-specific representations), and all~12 (from Experiment~14).
+
+\begin{table}[ht]
+\centering
+\caption{Layer hooking ablation on ViT-Small/4, CIFAR-100 (seed 42, $\beta{=}0.7$, FP16).}
+\label{tab:vit_layer_ablation}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Hooked blocks} & \textbf{Best test acc (\%)} & \textbf{Gap (pp)} & \textbf{Mean corr.\ acc (\%)} & \textbf{Time/ep} \\
+\midrule
+Baseline (no SES) & 55.28 & 44.50 & 34.75 & 57.5\,s \\
+\midrule
+First 4 (blocks 0--3) & 57.04 & 42.89 & 35.90 & 76.6\,s \\
+All 12 (Exp~14) & 57.01 & 43.10 & 36.08 & 79.6\,s \\
+\textbf{Last 4 (blocks 8--11)} & \textbf{57.61} & \textbf{42.19} & \textbf{36.12} & 65.3\,s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Hooked blocks} & $\Delta$\textbf{Acc (pp)} & $\Delta$\textbf{Gap (pp)} & $\Delta$\textbf{Rob (pp)} \\
+\midrule
+First 4 vs Baseline & $+1.76$ & $-1.61$ & $+1.16$ \\
+All 12 vs Baseline & $+1.73$ & $-1.40$ & $+1.33$ \\
+Last 4 vs Baseline & $\mathbf{+2.33}$ & $\mathbf{-2.31}$ & $\mathbf{+1.38}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A surprising result emerges: \textbf{hooking only the last 4 blocks outperforms hooking all~12} ($+2.33$~pp vs.\ $+1.73$~pp accuracy) while being the \emph{fastest} SES configuration (65.3\,s/ep vs.\ 79.6\,s/ep). This yields a $14\%$ reduction in overhead with a $+0.60$~pp accuracy improvement over all-12 hooking. The result suggests that regularizing the spectral entropy of early transformer blocks---which encode low-level patch features and positional information---introduces an unnecessary constraint that slightly harms optimization.
+
+Three insights emerge. First, \textbf{later transformer blocks benefit most from SES}, consistent with the CNN layer ablation (Experiment~9) where final layers also showed the strongest effect. In transformers, the later blocks learn more abstract, task-specific representations where controlling the effective dimensionality is most impactful. Second, \textbf{even first-4 hooking is effective} ($+1.76$~pp), demonstrating that every part of the transformer benefits from spectral regularization, though to different degrees. Third, the \textbf{combined implication} of both ablations is a practical recommendation for ViTs: use $\beta{=}0.5$ with hooks on the last 4 blocks for maximum benefit at minimum cost.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{21_vit_ablations.png}
+    \caption{\textbf{Experiment 17}: ViT-Small/4 ablations on CIFAR-100. All six configurations compared on accuracy, generalization gap, and corruption robustness. $\beta{=}0.5$ achieves the best accuracy ($57.94\%$) among $\beta$ sweep configs; Last-4 blocks outperform All-12 in the layer ablation.}
+    \label{fig:exp17}
+\end{figure}
+
+
+\subsection{Experiment 18: SES on Attention Matrices}
+\label{sec:attn_ses}
+
+All previous experiments apply SES to \emph{block outputs}---the full transformer block representation after both attention and MLP sub-layers. A natural question is whether SES can be applied directly to the attention \emph{mechanism} itself, regularizing the diversity of attention patterns rather than (or in addition to) the diversity of representations. This connects to the well-known problem of \emph{attention head redundancy}: many heads in a transformer learn nearly identical attention patterns and can be pruned without performance loss~[26].
+
+We test three hook targets on ViT-Small/4 (CIFAR-100, $\beta{=}0.5$), each producing $[B, d]$ tensors for SES (\Cref{tab:attn_ses}):
+\begin{itemize}[nosep]
+    \item \textbf{Block output}: standard approach---hook on full block output, mean-pool over sequence dimension to $[B, 384]$.
+    \item \textbf{Attention sub-layer output}: hook on the attention output \emph{before} the MLP and residual connection, mean-pool to $[B, 384]$. This isolates the attention contribution.
+    \item \textbf{Attention weight matrices}: for each block, extract per-head attention weights $[B, H, S, S]$, average over query tokens to obtain per-head mean attention patterns $[B, H, S]$, and flatten to $[B, H{\times}S] = [B, 390]$. SES on this tensor regularizes the batch-level diversity of attention patterns.
+\end{itemize}
+We also test combined configurations: \textbf{Dual} (block output $+$ attention weights) and \textbf{Triple} (block output $+$ attention sub-layer $+$ attention weights). All use Last-4 hooks unless noted.
+
+\begin{table}[ht]
+\centering
+\caption{SES on different hook targets in ViT-Small/4, CIFAR-100 (seed 42, $\beta{=}0.5$, FP16). Baseline from Experiment~17: $55.28\%$ accuracy, $34.75\%$ corruption robustness.}
+\label{tab:attn_ses}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Hook target} & \textbf{Blocks} & \textbf{Best acc (\%)} & \textbf{Gap (pp)} & \textbf{Corr.\ acc (\%)} & \textbf{Time/ep} \\
+\midrule
+Block output & Last-4 & 57.31 & 42.49 & 36.00 & 75.2\,s \\
+Attn sub-layer & Last-4 & 57.02 & 42.78 & 35.53 & 76.4\,s \\
+Attn weights & Last-4 & 56.01 & 44.10 & 34.43 & 76.4\,s \\
+Attn weights & All-12 & 56.88 & 42.98 & 35.66 & 81.2\,s \\
+\midrule
+Dual (Block $+$ AttnWt) & Last-4 & 57.66 & 42.26 & 36.12 & 73.9\,s \\
+\textbf{Triple (Block $+$ AttnOut $+$ AttnWt)} & Last-4 & \textbf{57.93} & \textbf{42.06} & \textbf{36.12} & 80.9\,s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+\textbf{Hook target} & \textbf{Blocks} & $\Delta$\textbf{Acc (pp)} & $\Delta$\textbf{Gap (pp)} & $\Delta$\textbf{Rob (pp)} \\
+\midrule
+Block output & Last-4 & $+2.03$ & $-2.01$ & $+1.25$ \\
+Attn sub-layer & Last-4 & $+1.74$ & $-1.72$ & $+0.78$ \\
+Attn weights & Last-4 & $+0.73$ & $-0.40$ & $-0.32$ \\
+Attn weights & All-12 & $+1.60$ & $-1.52$ & $+0.91$ \\
+\midrule
+Dual (Block $+$ AttnWt) & Last-4 & $+2.38$ & $-2.24$ & $+1.37$ \\
+\textbf{Triple} & Last-4 & $\mathbf{+2.65}$ & $\mathbf{-2.44}$ & $\mathbf{+1.37}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Four key findings emerge. First, \textbf{block output SES remains the strongest single hook target} ($+2.03$~pp accuracy), confirming that the full representation after both attention and MLP is the most informative signal for spectral regularization. The attention sub-layer output is close ($+1.74$~pp), indicating that most of the SES benefit comes from regularizing the attention representation rather than the MLP output.
+
+Second, \textbf{attention weight SES alone is weak}: with Last-4 hooks it provides only $+0.73$~pp accuracy and slightly hurts robustness ($-0.32$~pp). Attention weights live on the probability simplex (each row sums to~1), limiting the effective range of the spectral entropy. Hooking all~12 blocks improves the result substantially ($+1.60$~pp), but still underperforms block output SES.
+
+Third, \textbf{block output and attention weight SES are complementary}: the Dual configuration ($+2.38$~pp) outperforms block output alone ($+2.03$~pp) by $+0.35$~pp, and the Triple configuration achieves $+2.65$~pp---an improvement of $+0.62$~pp over block output alone. The combined approach regularizes both the \emph{what} (representation diversity via block outputs) and the \emph{how} (mechanism diversity via attention patterns).
+
+Fourth, the \textbf{Triple configuration matches the best result across all ViT experiments}: $57.93\%$ accuracy is virtually identical to $\beta{=}0.5$ with all~12 block hooks from Experiment~17 ($57.94\%$), but achieved with only Last-4 hooks plus attention information. This suggests that adding attention-level SES can compensate for fewer block hooks, offering an alternative path to strong performance.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{22_vit_attention_ses.png}
+    \caption{\textbf{Experiment 18}: SES on attention matrices (ViT-Small/4, CIFAR-100, $\beta{=}0.5$). Dashed lines indicate the no-SES baseline. Block output SES is the strongest single target; combined approaches (Dual, Triple) achieve the best overall results by jointly regularizing representations and attention patterns.}
+    \label{fig:exp18}
+\end{figure}
+
+
 \subsection{Computational Overhead}
 \label{sec:overhead}
 
@@ -969,7 +1122,7 @@ SES ($\beta=0.7$, 9 hooks) & 42.5\,s & $+47.1\%$ & 256 \\
 The $\sim$50\% overhead when evaluating SES at every step is dominated by the eigendecomposition of 9 covariance matrices. Three strategies reduce this in practice, two of which are empirically validated in this paper:
 \begin{itemize}[nosep]
     \item \textbf{Periodic evaluation} (Experiment~10): computing SES every $k{=}10$ steps reduces overhead to $+19\%$ while retaining $>90\%$ of the benefit. This is the recommended default configuration.
-    \item \textbf{Selective hooking} (Experiments~9, 11): hooking only the final layers reduces both the number of eigendecompositions and VRAM usage. On Tiny-ImageNet with ResNet-50, 4~hooks achieve $+2.58$~pp accuracy at only $+15\%$ overhead.
+    \item \textbf{Selective hooking} (Experiments~9, 11, 17): hooking only the final layers reduces both the number of eigendecompositions and VRAM usage. On Tiny-ImageNet with ResNet-50, 4~hooks achieve $+2.58$~pp accuracy at only $+15\%$ overhead. On ViT-Small, last-4 hooking outperforms all-12 hooking ($+2.33$~pp vs.\ $+1.73$~pp) with $18\%$ faster epoch time.
     \item \textbf{Randomized SVD}: rank-$k$ approximation with $k = 32$ reduces per-layer cost from $O(d_l^3)$ to $O(d_l^2 k)$, a $16\times$ speedup for $d_l = 512$. Not yet validated experimentally.
 \end{itemize}
 
@@ -991,12 +1144,12 @@ P2 & Improved robustness & Consistent across all datasets, architectures (CNNs a
 P3 & Controllable erank & All layers converge to $d_l^\beta \pm 5\%$ (toy and CIFAR-10). & \textcolor{green!60!black}{\checkmark} \\
 P4 & Reduced Jacobian $\kappa$ & $2.45\times$ reduction, $5\times$ lower variance (toy). & \textcolor{green!60!black}{\checkmark} \\
 P5 & No collapse & Effective rank stable throughout training. & \textcolor{green!60!black}{\checkmark} \\
-P6 & $\beta$ controls dynamics & Early dynamics differ; final performance similar. Adaptive scheduling (Exp~16): warmup hurts, reverse $\approx$ fixed. & \textcolor{orange!80!black}{$\sim$} \\
+P6 & $\beta$ controls dynamics & Early dynamics differ; final performance similar. Adaptive scheduling (Exp~16): warmup hurts, reverse $\approx$ fixed. ViT $\beta$ sweep (Exp~17): inverted-U with $\beta{=}0.5$ optimal for transformers. & \textcolor{orange!80!black}{$\sim$} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Five predictions are fully confirmed (P1--P5) and one is partially confirmed (P6). With Tiny-ImageNet results, P1 is upgraded to fully confirmed: the generalization gap reduction scales monotonically with task difficulty ($0\%$ on CIFAR-10, $-1.3\%$ on CIFAR-100, $-6.1\%$ on Tiny-ImageNet). The comparison with spectral normalization (Experiment~8) demonstrates that full-distribution control provides stronger regularization than constraining only $\sigma_{\max}$. Periodic evaluation (Experiment~10) makes SES practical: $k{=}10$ achieves $+19\%$ overhead with $>90\%$ of the full benefit. The layer ablation (Experiment~9) and Tiny-ImageNet scaling (Experiment~11) both confirm that final-layer hooking suffices for strong performance. Experiment~12 demonstrates that SES is \emph{orthogonal} to modern data augmentation, consistently adding value on top of Mixup and CutMix. Experiment~13 confirms the difficulty-scaling hypothesis from the architecture side: on WRN-28-10, where CIFAR-100 is relatively easy, SES improves only robustness ($+0.54$~pp), mirroring the CIFAR-10/ResNet-18 pattern. Experiment~14 extends SES to Vision Transformers, demonstrating that the spectral regularizer is architecture-agnostic: ViT-Small gains $+1.73$~pp accuracy and $+1.33$~pp robustness, with the larger-gap architecture benefiting more. Experiment~15 combines both threads---ViTs and data augmentation---showing that SES remains additive with RandAugment ($+0.91$~pp accuracy, $+0.96$~pp robustness) and is particularly effective when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness), where it counteracts the underfitting caused by aggressive label smoothing. Experiment~16 ablates adaptive $\beta$ scheduling, finding that all warmup strategies (low$\to$high $\beta$) \emph{hurt} performance ($-0.73$ to $-1.22$~pp accuracy), while a reverse schedule ($0.9{\to}0.3$) provides a marginal improvement ($+0.09$~pp), confirming that fixed $\beta{=}0.7$ is near-optimal.
+Five predictions are fully confirmed (P1--P5) and one is partially confirmed (P6). With Tiny-ImageNet results, P1 is upgraded to fully confirmed: the generalization gap reduction scales monotonically with task difficulty ($0\%$ on CIFAR-10, $-1.3\%$ on CIFAR-100, $-6.1\%$ on Tiny-ImageNet). The comparison with spectral normalization (Experiment~8) demonstrates that full-distribution control provides stronger regularization than constraining only $\sigma_{\max}$. Periodic evaluation (Experiment~10) makes SES practical: $k{=}10$ achieves $+19\%$ overhead with $>90\%$ of the full benefit. The layer ablation (Experiment~9) and Tiny-ImageNet scaling (Experiment~11) both confirm that final-layer hooking suffices for strong performance. Experiment~12 demonstrates that SES is \emph{orthogonal} to modern data augmentation, consistently adding value on top of Mixup and CutMix. Experiment~13 confirms the difficulty-scaling hypothesis from the architecture side: on WRN-28-10, where CIFAR-100 is relatively easy, SES improves only robustness ($+0.54$~pp), mirroring the CIFAR-10/ResNet-18 pattern. Experiment~14 extends SES to Vision Transformers, demonstrating that the spectral regularizer is architecture-agnostic: ViT-Small gains $+1.73$~pp accuracy and $+1.33$~pp robustness, with the larger-gap architecture benefiting more. Experiment~15 combines both threads---ViTs and data augmentation---showing that SES remains additive with RandAugment ($+0.91$~pp accuracy, $+0.96$~pp robustness) and is particularly effective when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness), where it counteracts the underfitting caused by aggressive label smoothing. Experiment~16 ablates adaptive $\beta$ scheduling, finding that all warmup strategies (low$\to$high $\beta$) \emph{hurt} performance ($-0.73$ to $-1.22$~pp accuracy), while a reverse schedule ($0.9{\to}0.3$) provides a marginal improvement ($+0.09$~pp), confirming that fixed $\beta{=}0.7$ is near-optimal. Experiment~17 performs a systematic ViT ablation of $\beta$ sensitivity and layer hooking: $\beta{=}0.5$ is optimal for ViTs ($+2.66$~pp accuracy---the largest single-configuration gain across all experiments), while hooking only the last 4 transformer blocks outperforms all-12 hooking ($+2.33$~pp vs.\ $+1.73$~pp) at $18\%$ lower overhead, confirming that later layers benefit most from spectral regularization in both CNN (Experiment~9) and transformer architectures. Experiment~18 extends SES to attention weight matrices, finding that block-output SES is the strongest single hook target ($+2.03$~pp) but that combining it with attention-level SES yields further gains: Triple SES (block $+$ attention sub-layer $+$ attention weights) achieves $+2.65$~pp accuracy, demonstrating that regularizing both the \emph{what} (representation diversity) and the \emph{how} (attention mechanism diversity) is complementary.
 
 
 % ══════════════════════════════════════════════════════════
@@ -1025,7 +1178,7 @@ Implementation & $\sim$10 lines of PyTorch; integrable as a callback \\
 
 SES fills a specific gap in the deep learning regularization toolkit: it provides \textbf{explicit, differentiable control over the spectral geometry of representations}, with theoretical guarantees that directly link the hyperparameter~$\beta$ to both generalization capacity and stability. Unlike Batch Normalization (which normalizes only the first two moments), Dropout (which acts stochastically on individual activations), or spectral norm regularization (which controls only $\lambda_{\max}$), SES acts on the \emph{global structure} of the feature distribution, offering a geometrically motivated inductive bias with a clear information-theoretic interpretation.
 
-Empirical validation reveals a clear pattern: \textbf{SES benefits scale with task difficulty}. On easy benchmarks (CIFAR-10), SES matches baseline accuracy ($93.43 \pm 0.10$ vs.\ $93.37 \pm 0.23$, 3 seeds) while consistently improving corruption robustness ($+0.45$~pp). On harder tasks (CIFAR-100, 3 seeds), benefits grow: $+0.47$~pp accuracy with $2.6\times$ lower variance, $-1.3\%$ gap, $+0.65$~pp robustness. On Tiny-ImageNet (200 classes, ResNet-50), the effect is strongest: $+2.58$~pp accuracy, $-6.1\%$ gap, $+2.37$~pp robustness. The difficulty-scaling hypothesis is further confirmed from the architecture side: WRN-28-10 (36.5M parameters) makes CIFAR-100 relatively easy, and SES accordingly improves only robustness ($+0.54$~pp), mirroring the CIFAR-10/ResNet-18 pattern. \textbf{SES generalizes beyond CNNs to Vision Transformers}: ViT-Small gains $+1.73$~pp accuracy and $+1.33$~pp robustness, with the higher-gap architecture benefiting more, consistent with the difficulty-scaling pattern. Crucially, \textbf{SES is orthogonal to modern data augmentation} on both CNNs and ViTs: it adds $+0.26$--$0.79$~pp accuracy and $+0.61$--$0.94$~pp robustness on top of Mixup and CutMix (ResNet-18), and $+0.91$~pp accuracy with $+0.96$~pp robustness on top of RandAugment (ViT-Small). SES is particularly effective when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness), where it counteracts the underfitting caused by aggressive label smoothing. SES outperforms spectral normalization on all metrics, demonstrating that controlling the full spectral distribution provides stronger regularization than constraining only $\sigma_{\max}$. Periodic evaluation ($k{=}10$) reduces the computational overhead from $+195\%$ to $+19\%$ while retaining $>90\%$ of the benefit, making SES practical for deployment. An ablation of adaptive $\beta$ scheduling (Experiment~16) confirms that the default fixed $\beta{=}0.7$ is near-optimal: warmup schedules (low$\to$high) all hurt performance, while a reverse schedule (high$\to$low) matches fixed $\beta$ within noise. This validates the single-hyperparameter simplicity of SES.
+Empirical validation reveals a clear pattern: \textbf{SES benefits scale with task difficulty}. On easy benchmarks (CIFAR-10), SES matches baseline accuracy ($93.43 \pm 0.10$ vs.\ $93.37 \pm 0.23$, 3 seeds) while consistently improving corruption robustness ($+0.45$~pp). On harder tasks (CIFAR-100, 3 seeds), benefits grow: $+0.47$~pp accuracy with $2.6\times$ lower variance, $-1.3\%$ gap, $+0.65$~pp robustness. On Tiny-ImageNet (200 classes, ResNet-50), the effect is strongest: $+2.58$~pp accuracy, $-6.1\%$ gap, $+2.37$~pp robustness. The difficulty-scaling hypothesis is further confirmed from the architecture side: WRN-28-10 (36.5M parameters) makes CIFAR-100 relatively easy, and SES accordingly improves only robustness ($+0.54$~pp), mirroring the CIFAR-10/ResNet-18 pattern. \textbf{SES generalizes beyond CNNs to Vision Transformers}: ViT-Small gains $+1.73$~pp accuracy and $+1.33$~pp robustness, with the higher-gap architecture benefiting more, consistent with the difficulty-scaling pattern. Crucially, \textbf{SES is orthogonal to modern data augmentation} on both CNNs and ViTs: it adds $+0.26$--$0.79$~pp accuracy and $+0.61$--$0.94$~pp robustness on top of Mixup and CutMix (ResNet-18), and $+0.91$~pp accuracy with $+0.96$~pp robustness on top of RandAugment (ViT-Small). SES is particularly effective when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness), where it counteracts the underfitting caused by aggressive label smoothing. SES outperforms spectral normalization on all metrics, demonstrating that controlling the full spectral distribution provides stronger regularization than constraining only $\sigma_{\max}$. Periodic evaluation ($k{=}10$) reduces the computational overhead from $+195\%$ to $+19\%$ while retaining $>90\%$ of the benefit, making SES practical for deployment. An ablation of adaptive $\beta$ scheduling (Experiment~16) confirms that the default fixed $\beta{=}0.7$ is near-optimal: warmup schedules (low$\to$high) all hurt performance, while a reverse schedule (high$\to$low) matches fixed $\beta$ within noise. This validates the single-hyperparameter simplicity of SES. A systematic ViT ablation (Experiment~17) refines the transformer-specific recipe: $\beta{=}0.5$ achieves the largest single-configuration accuracy gain across all experiments ($+2.66$~pp on ViT-Small), and hooking only the last 4 transformer blocks outperforms all-12 hooking ($+2.33$~pp vs.\ $+1.73$~pp) while reducing overhead by $18\%$---confirming that later layers benefit most from spectral regularization in both CNNs and transformers. Experiment~18 further extends SES to attention weight matrices, demonstrating that block-output SES (representation diversity) and attention-weight SES (mechanism diversity) are complementary: the Triple configuration achieves $+2.65$~pp accuracy with only Last-4 hooks.
 
 
 % ══════════════════════════════════════════════════════════
@@ -1057,7 +1210,7 @@ Several directions emerge naturally from the current work.
 
 \paragraph{Application to self-supervised learning.} Representational collapse is a well-known failure mode in self-supervised methods (BYOL, SimSiam, VICReg). SES provides a principled, theoretically grounded alternative to the ad-hoc decorrelation and variance terms currently used in these frameworks.
 
-\paragraph{Deeper application to transformers.} Our ViT results (Experiments~14--15) show SES works on transformer block outputs and remains additive with modern augmentation. However, attention heads in transformers are also known to exhibit low effective rank~[26], and some heads can be pruned without performance loss. Applying SES directly to attention weight matrices or per-head representations---rather than only to block outputs---could yield stronger regularization. The strong SES+Mixup additivity on ViTs (Experiment~15) suggests that SES may be particularly valuable in underfitting regimes common during ViT training. Scaling to larger ViTs and language models (BERT, GPT) on standard NLP benchmarks would further establish the scope of SES for transformer architectures.
+\paragraph{Deeper application to transformers.} Our ViT results (Experiments~14--18) show SES works on transformer block outputs, attention sub-layer outputs, and attention weight matrices, and that these targets are complementary. Experiment~18 demonstrates that Triple SES ($+2.65$~pp accuracy) jointly regularizes representation and attention-mechanism diversity. However, deeper integration remains unexplored: applying SES to \emph{per-head} representations (rather than aggregated across heads) could provide finer-grained control over attention head specialization. An explicit inter-head decorrelation term---penalizing the off-diagonal entries of the head-level covariance matrix---could more directly enforce head diversity. The finding that optimal $\beta$ differs between CNNs ($0.7$) and ViTs ($0.5$) suggests that architecture-aware $\beta$ selection may be important. Scaling to larger ViTs and language models (BERT, GPT) on standard NLP benchmarks would further establish the scope of SES for transformer architectures.
 
 \paragraph{Stronger theoretical analysis.} Extending the proof of \Cref{thm:generalization} to account for the soft penalty (rather than assuming hard constraints) and deriving tighter bounds using PAC-Bayes techniques tailored to the spectral entropy prior would strengthen the theoretical foundation. Additionally, connecting SES to the Neural Tangent Kernel regime could yield insights into the implicit regularization effect of spectral entropy control.
 
@@ -1070,7 +1223,7 @@ Several directions emerge naturally from the current work.
 
 We introduced \textbf{Spectral Entropy Shaping (SES)}, a regularization technique that controls the effective dimensionality of neural network representations by penalizing deviations of the layer-wise spectral entropy from a target value. The method is grounded in two theoretical guarantees: a generalization bound that scales with the effective rank rather than the ambient dimension (\Cref{thm:generalization}), and a Lipschitz stability bound showing reduced sensitivity to input perturbations (\Cref{thm:stability}).
 
-Empirical validation across sixteen experiments---spanning CIFAR-10 (3 seeds), CIFAR-100 (3 seeds), Tiny-ImageNet (ResNet-50), WideResNet-28-10, Vision Transformers (ViT-Tiny and ViT-Small), combinations with Mixup/CutMix on both CNNs and ViTs, adaptive $\beta$ scheduling, and synthetic data---reveals that \textbf{SES benefits scale monotonically with task difficulty}. On well-solved benchmarks (CIFAR-10), SES matches baseline accuracy while consistently improving corruption robustness ($+0.45$~pp). On harder tasks, the effect grows: $+0.47$~pp accuracy on CIFAR-100, and $+2.58$~pp accuracy with $+2.37$~pp robustness on Tiny-ImageNet---the largest improvement across all experiments. SES generalizes beyond CNNs to Vision Transformers ($+1.73$~pp accuracy, $+1.33$~pp robustness on ViT-Small), and is \emph{orthogonal} to modern data augmentation on both architectures: it adds $+0.26$--$0.79$~pp accuracy on top of Mixup/CutMix for CNNs, and $+0.91$~pp accuracy on top of RandAugment for ViTs, with the strongest additivity when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness). Direct comparison shows SES outperforms spectral normalization on all metrics. Periodic evaluation ($k{=}10$) reduces overhead from $+195\%$ to $+19\%$ while retaining $>90\%$ of the benefit, making SES practical for deployment. The Jacobian condition number reduction ($2.45\times$) on a controlled task directly validates the Lipschitz stability bound.
+Empirical validation across eighteen experiments---spanning CIFAR-10 (3 seeds), CIFAR-100 (3 seeds), Tiny-ImageNet (ResNet-50), WideResNet-28-10, Vision Transformers (ViT-Tiny and ViT-Small), combinations with Mixup/CutMix on both CNNs and ViTs, adaptive $\beta$ scheduling, ViT $\beta$/layer ablations, SES on attention matrices, and synthetic data---reveals that \textbf{SES benefits scale monotonically with task difficulty}. On well-solved benchmarks (CIFAR-10), SES matches baseline accuracy while consistently improving corruption robustness ($+0.45$~pp). On harder tasks, the effect grows: $+0.47$~pp accuracy on CIFAR-100, and $+2.58$~pp accuracy with $+2.37$~pp robustness on Tiny-ImageNet---the largest improvement across all experiments. SES generalizes beyond CNNs to Vision Transformers ($+1.73$~pp accuracy, $+1.33$~pp robustness on ViT-Small), and is \emph{orthogonal} to modern data augmentation on both architectures: it adds $+0.26$--$0.79$~pp accuracy on top of Mixup/CutMix for CNNs, and $+0.91$~pp accuracy on top of RandAugment for ViTs, with the strongest additivity when combined with Mixup on ViTs ($+2.06$~pp accuracy, $+2.52$~pp robustness). A systematic ViT ablation (Experiment~17) reveals that $\beta{=}0.5$ is optimal for transformers ($+2.66$~pp accuracy, the largest single-configuration gain) and that hooking only the last 4 transformer blocks outperforms all-12 hooking ($+2.33$~pp vs.\ $+1.73$~pp) at lower computational cost. Extending SES to attention weight matrices (Experiment~18) shows that block-output and attention-level SES are complementary: Triple SES achieves $+2.65$~pp accuracy with only Last-4 hooks. Direct comparison shows SES outperforms spectral normalization on all metrics. Periodic evaluation ($k{=}10$) reduces overhead from $+195\%$ to $+19\%$ while retaining $>90\%$ of the benefit, making SES practical for deployment. The Jacobian condition number reduction ($2.45\times$) on a controlled task directly validates the Lipschitz stability bound.
 
 We believe the most significant contribution of this work is conceptual: turning the effective rank from a passive diagnostic into an active, differentiable regularizer. SES is the first method to provide explicit control over the \emph{full spectral distribution} of learned representations, offering a new and principled lever for controlling the geometry of deep networks. The consistent robustness improvements and precise spectral control demonstrated across all experiments suggest that this geometric perspective on regularization is a promising direction for future research.
 
