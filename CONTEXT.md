@@ -1,8 +1,8 @@
 # CONTEXT.md — Spectral Entropy Shaping (SES) Project
 
-**Autore**: Davide Le Bone  
-**Ultimo aggiornamento**: 14 febbraio 2026  
-**Paper**: 22 pagine, 11 esperimenti, 30+ references
+**Autore**: Davide Le Bone
+**Ultimo aggiornamento**: 15 febbraio 2026
+**Paper**: 22+ pagine, 13 esperimenti, 30+ references
 
 ---
 
@@ -33,7 +33,8 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P2 | 9 | Layer hooking ablation (CIFAR-10) | ✅ | Last 3→best acc/gap, All 9→best rob |
 | P3 | 10 | Periodic SES k={1,3,5,10} (CIFAR-100) | ✅ | **k=10: +0.86pp acc, +0.96pp rob, solo 19% overhead** |
 | P3 | 11 | ResNet-50 Tiny-ImageNet (200 cls, 64×64) | ✅ | **+2.58pp acc, -6.1% gap, +2.37pp rob** |
-| P3 | 12 | SES + Mixup/CutMix (CIFAR-100) | ⏳ | Script pronto, da runnare |
+| P3 | 12 | SES + Mixup/CutMix (CIFAR-100) | ✅ | **SES ortogonale: +0.26-0.79pp acc, +0.61-0.94pp rob su ogni combinazione** |
+| P3 | 13 | WideResNet-28-10 (CIFAR-100) | ✅ | Acc pari (−0.31pp), Rob +0.54pp — neutro su architetture large |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -41,7 +42,18 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 |---------|--------|--------------|-------|-------|
 | CIFAR-10 | 10 | ResNet-18 | −0.06pp | +0.45pp |
 | CIFAR-100 | 100 | ResNet-18 | +0.47pp | +0.65pp |
+| CIFAR-100 | 100 | WRN-28-10 (36.5M) | −0.31pp | +0.54pp |
 | Tiny-ImageNet | 200 | ResNet-50 | **+2.58pp** | **+2.37pp** |
+
+### SES è ortogonale alle augmentation moderne (Exp 12)
+
+| Combinazione | Δ Acc | Δ Rob | Interpretazione |
+|---|---|---|---|
+| None → SES | +0.34pp | +0.87pp | SES standalone |
+| Mixup → SES+Mixup | +0.26pp | +0.94pp | SES aggiunge su Mixup |
+| CutMix → SES+CutMix | **+0.79pp** | +0.61pp | SES aggiunge su CutMix |
+
+Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 
 ### Predizioni teoriche
 
@@ -91,7 +103,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | `ses_phase3.py` | Phase 3 completo (Exp 10+11+12) per Kaggle T4 | T4 | Exp 10 completato |
 | `ses_phase3_resume.py` | Phase 3 senza Exp 10 (già fatto) | T4 | Superseded da dual-gpu |
 | `ses_resnet50_tinyimagenet.py` | Exp 11: ResNet-50 Tiny-ImageNet standalone | L40S | ✅ Completato |
-| `ses_kaggle_dual_gpu.py` | Exp 12 + WRN-28-10 in parallelo | 2× T4 | ⏳ Da runnare |
+| `ses_kaggle_dual_gpu.py` | Exp 12 + Exp 13 (WRN) in parallelo | 2× T4 | ✅ Completato (batch 512, FP16) |
 
 ### Risultati JSON
 
@@ -99,6 +111,9 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 |------|-----------|
 | `resnet50_tinyimagenet_results.json` | Exp 11: acc, gap, rob, per-corruption detail, epoch time, VRAM |
 | `phase3_results.json` | Exp 10: periodic SES (generato da ses_phase3.py) |
+| `wrn_results.json` | Exp 13: WRN-28-10 baseline vs SES (con history) |
+| `aug_results.json` | Exp 12: SES + Mixup/CutMix 6 config (con history) |
+| `dual_gpu_summary.json` | Exp 12+13: summary senza history |
 
 ### Checkpoint modelli
 
@@ -118,19 +133,19 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 
 ## 3. Prossimi task
 
-### Priorità alta — completare Phase 3
+### Priorità alta
 
-- [ ] **Runnare `ses_kaggle_dual_gpu.py` su Kaggle 2× T4**
-  - GPU 0: WideResNet-28-10 CIFAR-100 (Baseline + SES) — architecture generalization
-  - GPU 1: Exp 12 SES + Mixup/CutMix CIFAR-100 (6 config) — ortogonalità con augmentation
-  - Mixed Precision FP16 (Tensor Cores T4), SES regularizer in FP32
-  - Parallelismo via subprocess (non threading — GIL serializza su Kaggle)
-  - Wall time stimato: ~3h (vs ~5.5h sequential)
-  - Comando: `!python ses_kaggle_dual_gpu.py`
+- [x] **Exp 12: SES + Mixup/CutMix (CIFAR-100)** — ✅ 15 feb 2026
+  - 6 config su Kaggle T4, batch 512, FP16
+  - **SES ortogonale**: aggiunge +0.26-0.79pp acc e +0.61-0.94pp rob su ogni combinazione
+  - Best: SES+CutMix 73.86% acc, SES+Mixup 48.21% rob
 
-- [ ] **Aggiornare paper con Exp 12 + WRN**
-  - Aggiungere sezione Exp 12 (Mixup/CutMix) e Exp 13 (WRN-28-10) nel paper
-  - Aggiornare abstract, summary table, conclusion
+- [x] **Exp 13: WRN-28-10 (CIFAR-100)** — ✅ 15 feb 2026
+  - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
+  - SES neutro su architetture large — conferma che benefici scalano con task difficulty
+
+- [ ] **Aggiornare paper con Exp 12 + Exp 13**
+  - Sezioni già aggiunte nel .tex — verificare figure e summary table
   - Aggiornare `arxiv_submission.zip`
 
 ### Priorità media — rafforzare risultati
@@ -191,16 +206,16 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 
 ## Setup tecnico di riferimento
 
-| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) |
-|-----------|-------------------|------------------------|
-| Architettura | ResNet-18 (11M) | ResNet-50 (25M) |
-| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool |
-| Immagini | 32×32 | 64×64 |
-| Batch | 256 | 256 |
-| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem |
-| Epoch | 50 | 60 |
-| Milestones | [20, 35, 45] | [25, 40, 52] |
-| Precisione | FP32 | BFloat16 + GradScaler |
-| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) |
-| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
-| GPU | T4 (16GB) | L40S (48GB) |
+| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) |
+|-----------|-------------------|------------------------|----------------------|
+| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) |
+| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem |
+| Immagini | 32×32 | 64×64 | 32×32 |
+| Batch | 256 | 256 | 512 |
+| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem |
+| Epoch | 50 | 60 | 50 |
+| Milestones | [20, 35, 45] | [25, 40, 52] | [20, 35, 45] |
+| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler |
+| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) |
+| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
+| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) |
