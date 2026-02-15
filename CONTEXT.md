@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 24+ pagine, 16 esperimenti, 35 references
+**Paper**: 26+ pagine, 17 esperimenti, 35 references
 
 ---
 
@@ -38,6 +38,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 14 | Vision Transformers (CIFAR-100) | ✅ | **ViT-S: +1.73pp acc, +1.33pp rob; ViT-T: +0.72pp acc, +1.31pp rob** |
 | P3 | 15 | SES + ViT + Data Augmentation (CIFAR-100) | ✅ | **SES additivo con RA (+0.91 acc, +0.96 rob), forte con Mixup (+2.06 acc, +2.52 rob)** |
 | P3 | 16 | Adaptive β Scheduling (CIFAR-100) | ✅ | **Warmup hurt (−0.73 to −1.22pp), Reverse ≈ Fixed, β=0.7 near-optimal** |
+| P3 | 17 | ViT Ablations (β sweep + layer hooking) | ✅ | **β=0.5 optimal for ViT (+2.66pp), Last-4 > All-12 (+2.33 vs +1.73pp)** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -85,6 +86,31 @@ SES aiuta a contrastare l'underfitting da Mixup.
 **Risultato chiave**: Warmup β (basso→alto) **danneggia** performance. Reverse (alto→basso) ≈ Fixed.
 Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo iperparametro.
 
+### ViT β sweep — β=0.5 ottimale per transformer (Exp 17a)
+
+| Config | Acc | Gap | Rob | Δ Acc vs Base | Δ Rob vs Base |
+|--------|-----|-----|-----|---------------|---------------|
+| Baseline (no SES) | 55.28 | 44.50 | 34.75 | — | — |
+| β=0.3 (all 12) | 55.28 | 44.61 | 34.42 | +0.00 | −0.32 |
+| **β=0.5 (all 12)** | **57.94** | **42.13** | **36.27** | **+2.66** | **+1.52** |
+| β=0.7 (all 12, Exp 14) | 57.01 | 43.10 | 36.08 | +1.73 | +1.33 |
+| β=0.9 (all 12) | 56.66 | 43.35 | 35.96 | +1.38 | +1.22 |
+
+**Inverted-U pattern**: β=0.3 troppo basso (nessun effetto), β=0.5 ottimale, β=0.7-0.9 decrescenti.
+Optimal β più basso per ViT (0.5) che per CNN (0.7) — i transformer operano a entropia spettrale naturalmente più alta.
+
+### ViT layer hooking ablation — Last-4 > All-12 (Exp 17b)
+
+| Blocks hookati | Acc | Gap | Rob | Δ Acc | Δ Rob | Time/ep |
+|----------------|-----|-----|-----|-------|-------|---------|
+| Baseline (no SES) | 55.28 | 44.50 | 34.75 | — | — | 57.5s |
+| First-4 (0–3) | 57.04 | 42.89 | 35.90 | +1.76 | +1.16 | 76.6s |
+| All-12 (Exp 14) | 57.01 | 43.10 | 36.08 | +1.73 | +1.33 | 79.6s |
+| **Last-4 (8–11)** | **57.61** | **42.19** | **36.12** | **+2.33** | **+1.38** | **65.3s** |
+
+**Last-4 batte All-12**: +0.60pp acc, −18% overhead. I block finali (task-specific) beneficiano di più dalla regolarizzazione spettrale.
+Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
+
 ### Predizioni teoriche
 
 | ID | Predizione | Status |
@@ -94,7 +120,7 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
 | P3 | Controllable effective rank | ✅ |
 | P4 | Reduced Jacobian κ | ✅ (2.45× riduzione) |
 | P5 | No collapse | ✅ |
-| P6 | β controls dynamics | ∼ (parziale — Exp 16: warmup hurt, reverse ≈ fixed, β=0.7 quasi ottimale) |
+| P6 | β controls dynamics | ∼ (parziale — Exp 16: warmup hurt, reverse ≈ fixed; Exp 17: inverted-U con β=0.5 ottimale per ViT, β=0.7 per CNN) |
 
 ---
 
@@ -140,6 +166,11 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
 | `20b_adaptive_beta_curves.png` | Exp 16: β schedules + accuracy curves |
 | `20c_adaptive_beta_percorruption.png` | Exp 16: per-corruption adaptive β |
 | `20d_adaptive_beta_delta.png` | Exp 16: Δ vs Fixed β=0.7 |
+| `21_vit_ablations.png` | Exp 17: all 6 ablation configs bar chart |
+| `21a_vit_beta_sweep.png` | Exp 17a: β sweep bar chart |
+| `21b_vit_layer_ablation.png` | Exp 17b: layer hooking ablation bar chart |
+| `21c_vit_ablations_curves.png` | Exp 17: accuracy curves |
+| `21d_vit_ablations_percorruption.png` | Exp 17: per-corruption breakdown |
 
 ### Script esperimenti
 
@@ -152,6 +183,7 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
 | `ses_vit_experiment.py` | Exp 14: ViT-Small + ViT-Tiny in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
 | `ses_vit_augmentation.py` | Exp 15: ViT-S + RA/Mixup/CutMix in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, RA) |
 | `ses_adaptive_beta.py` | Exp 16: Adaptive β scheduling (6 config) | 2× T4 | ✅ Completato (batch 512, FP16) |
+| `ses_vit_ablations.py` | Exp 17: ViT β sweep + layer hooking ablation (6 config) | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
 
 ### Risultati JSON
 
@@ -173,6 +205,10 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
 | `adaptive_beta_summary.json` | Exp 16: summary senza history |
 | `gpu0_beta_results.json` | Exp 16: GPU0 (baseline, fixed, linear) |
 | `gpu1_beta_results.json` | Exp 16: GPU1 (cosine, reverse, step) |
+| `vit_ablations_results.json` | Exp 17: 6 config ViT ablations (con history) |
+| `vit_ablations_summary.json` | Exp 17: summary senza history |
+| `gpu0_vit_ablations.json` | Exp 17: GPU0 (baseline, β=0.5, last-4) |
+| `gpu1_vit_ablations.json` | Exp 17: GPU1 (β=0.3, β=0.9, first-4) |
 
 ### Checkpoint modelli
 
@@ -203,8 +239,8 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14 + Exp 15 + Exp 16** — ✅ 15 feb 2026
-  - Sezioni Exp 12, 13, 14, 15, 16 aggiunte nel .tex
+- [x] **Aggiornare paper con Exp 12–17** — ✅ 15 feb 2026
+  - Sezioni Exp 12, 13, 14, 15, 16, 17 aggiunte nel .tex
   - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
@@ -269,17 +305,17 @@ Fixed β=0.7 è quasi ottimale — conferma la semplicità del design a singolo 
 
 ## Setup tecnico di riferimento
 
-| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) | ViT+Aug (Exp 15) | β Sched (Exp 16) |
-|-----------|-------------------|------------------------|----------------------|--------------|------------------|------------------|
-| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) | ViT-Small/4 (22M) | ResNet-18 (11M) |
-| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches | patch_size=4, 64 patches | conv1 3×3 s1, no maxpool |
-| Immagini | 32×32 | 64×64 | 32×32 | 32×32 | 32×32 | 32×32 |
-| Batch | 256 | 256 | 512 | 512 | 512 | 512 |
-| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 | AdamW lr=1e-3 wd=0.05 | SGD lr=0.1 mom=0.9 wd=5e-4 |
-| Epoch | 50 | 60 | 50 | 50 | 50 | 50 |
-| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep | Cosine + warmup 5ep | MultiStep [20,35,45] |
-| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
-| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) | 12 (all transformer blocks) | 9 (all blocks + avgpool) |
-| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β adaptive |
-| Augmentation | Standard | Standard | Standard / Mixup / CutMix | Standard | RA(n=2,m=9) / Mixup / CutMix | Standard |
-| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) |
+| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) | ViT+Aug (Exp 15) | β Sched (Exp 16) | ViT Abl (Exp 17) |
+|-----------|-------------------|------------------------|----------------------|--------------|------------------|------------------|------------------|
+| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) | ViT-Small/4 (22M) | ResNet-18 (11M) | ViT-Small/4 (22M) |
+| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches | patch_size=4, 64 patches | conv1 3×3 s1, no maxpool | patch_size=4, 64 patches |
+| Immagini | 32×32 | 64×64 | 32×32 | 32×32 | 32×32 | 32×32 | 32×32 |
+| Batch | 256 | 256 | 512 | 512 | 512 | 512 | 512 |
+| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 | AdamW lr=1e-3 wd=0.05 | SGD lr=0.1 mom=0.9 wd=5e-4 | AdamW lr=1e-3 wd=0.05 |
+| Epoch | 50 | 60 | 50 | 50 | 50 | 50 | 50 |
+| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep | Cosine + warmup 5ep | MultiStep [20,35,45] | Cosine + warmup 5ep |
+| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
+| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) | 12 (all transformer blocks) | 9 (all blocks + avgpool) | all/first-4/last-4 |
+| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β adaptive | λ=0.01, β={0.3,0.5,0.7,0.9} |
+| Augmentation | Standard | Standard | Standard / Mixup / CutMix | Standard | RA(n=2,m=9) / Mixup / CutMix | Standard | Standard |
+| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) | 2× T4 (16GB) |
