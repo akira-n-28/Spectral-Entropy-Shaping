@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 26+ pagine, 17 esperimenti, 35 references
+**Paper**: 28+ pagine, 18 esperimenti, 35 references
 
 ---
 
@@ -39,6 +39,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 15 | SES + ViT + Data Augmentation (CIFAR-100) | ✅ | **SES additivo con RA (+0.91 acc, +0.96 rob), forte con Mixup (+2.06 acc, +2.52 rob)** |
 | P3 | 16 | Adaptive β Scheduling (CIFAR-100) | ✅ | **Warmup hurt (−0.73 to −1.22pp), Reverse ≈ Fixed, β=0.7 near-optimal** |
 | P3 | 17 | ViT Ablations (β sweep + layer hooking) | ✅ | **β=0.5 optimal for ViT (+2.66pp), Last-4 > All-12 (+2.33 vs +1.73pp)** |
+| P3 | 18 | SES on Attention Matrices (ViT-S) | ✅ | **Triple SES (block+attn_out+attn_wt) +2.65pp, block+attn complementari** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -111,6 +112,25 @@ Optimal β più basso per ViT (0.5) che per CNN (0.7) — i transformer operano 
 **Last-4 batte All-12**: +0.60pp acc, −18% overhead. I block finali (task-specific) beneficiano di più dalla regolarizzazione spettrale.
 Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 
+### SES on Attention Matrices — block + attention complementari (Exp 18)
+
+| Hook target | Blocks | Acc | Gap | Rob | Δ Acc | Δ Rob | Time/ep |
+|-------------|--------|-----|-----|-----|-------|-------|---------|
+| Baseline (Exp 17) | — | 55.28 | 44.50 | 34.75 | — | — | 57.5s |
+| Block output | Last-4 | 57.31 | 42.49 | 36.00 | +2.03 | +1.25 | 75.2s |
+| Attn sub-layer | Last-4 | 57.02 | 42.78 | 35.53 | +1.74 | +0.78 | 76.4s |
+| Attn weights | Last-4 | 56.01 | 44.10 | 34.43 | +0.73 | −0.32 | 76.4s |
+| Attn weights | All-12 | 56.88 | 42.98 | 35.66 | +1.60 | +0.91 | 81.2s |
+| Dual (Block+AttnWt) | Last-4 | 57.66 | 42.26 | 36.12 | +2.38 | +1.37 | 73.9s |
+| **Triple (Block+AttnOut+AttnWt)** | Last-4 | **57.93** | **42.06** | **36.12** | **+2.65** | **+1.37** | 80.9s |
+
+**Findings**:
+- Block output è il miglior target singolo (+2.03pp)
+- Attn weights da solo è debole (+0.73pp L4) — attention weights vivono sul simplesso
+- **Block + Attn sono complementari**: Dual +2.38pp, Triple +2.65pp
+- Triple (57.93%) ≈ β=0.5 All-12 (57.94% Exp 17), ma con solo Last-4 hooks + info attention
+- Nota: block_l4 β=0.5 (57.31%) < separati Exp 17 (β=0.5 All-12: 57.94%, L4 β=0.7: 57.61%)
+
 ### Predizioni teoriche
 
 | ID | Predizione | Status |
@@ -171,6 +191,10 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `21b_vit_layer_ablation.png` | Exp 17b: layer hooking ablation bar chart |
 | `21c_vit_ablations_curves.png` | Exp 17: accuracy curves |
 | `21d_vit_ablations_percorruption.png` | Exp 17: per-corruption breakdown |
+| `22_vit_attention_ses.png` | Exp 18: all 6 attention configs bar chart |
+| `22b_vit_attention_curves.png` | Exp 18: accuracy curves |
+| `22c_vit_attention_delta.png` | Exp 18: Δ vs baseline |
+| `22d_vit_attention_percorruption.png` | Exp 18: per-corruption breakdown |
 
 ### Script esperimenti
 
@@ -184,6 +208,7 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `ses_vit_augmentation.py` | Exp 15: ViT-S + RA/Mixup/CutMix in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, RA) |
 | `ses_adaptive_beta.py` | Exp 16: Adaptive β scheduling (6 config) | 2× T4 | ✅ Completato (batch 512, FP16) |
 | `ses_vit_ablations.py` | Exp 17: ViT β sweep + layer hooking ablation (6 config) | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
+| `ses_vit_attention.py` | Exp 18: SES on attention matrices (6 config) | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, β=0.5) |
 
 ### Risultati JSON
 
@@ -209,6 +234,10 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `vit_ablations_summary.json` | Exp 17: summary senza history |
 | `gpu0_vit_ablations.json` | Exp 17: GPU0 (baseline, β=0.5, last-4) |
 | `gpu1_vit_ablations.json` | Exp 17: GPU1 (β=0.3, β=0.9, first-4) |
+| `vit_attention_results.json` | Exp 18: 6 config attention SES (con history) |
+| `vit_attention_summary.json` | Exp 18: summary senza history |
+| `gpu0_attn_results.json` | Exp 18: GPU0 (block_l4, attn_out_l4, attn_wt_l4) |
+| `gpu1_attn_results.json` | Exp 18: GPU1 (dual_l4, attn_wt_all, triple_l4) |
 
 ### Checkpoint modelli
 
@@ -239,8 +268,8 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [x] **Aggiornare paper con Exp 12–17** — ✅ 15 feb 2026
-  - Sezioni Exp 12, 13, 14, 15, 16, 17 aggiunte nel .tex
+- [x] **Aggiornare paper con Exp 12–18** — ✅ 15 feb 2026
+  - Sezioni Exp 12, 13, 14, 15, 16, 17, 18 aggiunte nel .tex
   - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
