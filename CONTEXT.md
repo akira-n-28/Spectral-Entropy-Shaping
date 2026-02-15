@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 22+ pagine, 13 esperimenti, 30+ references
+**Paper**: 22+ pagine, 14 esperimenti, 34 references
 
 ---
 
@@ -35,6 +35,7 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 11 | ResNet-50 Tiny-ImageNet (200 cls, 64×64) | ✅ | **+2.58pp acc, -6.1% gap, +2.37pp rob** |
 | P3 | 12 | SES + Mixup/CutMix (CIFAR-100) | ✅ | **SES ortogonale: +0.26-0.79pp acc, +0.61-0.94pp rob su ogni combinazione** |
 | P3 | 13 | WideResNet-28-10 (CIFAR-100) | ✅ | Acc pari (−0.31pp), Rob +0.54pp — neutro su architetture large |
+| P3 | 14 | Vision Transformers (CIFAR-100) | ✅ | **ViT-S: +1.73pp acc, +1.33pp rob; ViT-T: +0.72pp acc, +1.31pp rob** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -43,6 +44,8 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | CIFAR-10 | 10 | ResNet-18 | −0.06pp | +0.45pp |
 | CIFAR-100 | 100 | ResNet-18 | +0.47pp | +0.65pp |
 | CIFAR-100 | 100 | WRN-28-10 (36.5M) | −0.31pp | +0.54pp |
+| CIFAR-100 | 100 | ViT-Tiny/4 (5.5M) | +0.72pp | +1.31pp |
+| CIFAR-100 | 100 | ViT-Small/4 (22M) | **+1.73pp** | +1.33pp |
 | Tiny-ImageNet | 200 | ResNet-50 | **+2.58pp** | **+2.37pp** |
 
 ### SES è ortogonale alle augmentation moderne (Exp 12)
@@ -60,7 +63,7 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | ID | Predizione | Status |
 |----|-----------|--------|
 | P1 | Reduced generalization gap | ✅ (scala con difficoltà: 0%→-1.3%→-6.1%) |
-| P2 | Improved robustness | ✅ (consistente su tutti i dataset e architetture) |
+| P2 | Improved robustness | ✅ (consistente su tutti i dataset, CNN e ViT) |
 | P3 | Controllable effective rank | ✅ |
 | P4 | Reduced Jacobian κ | ✅ (2.45× riduzione) |
 | P5 | No collapse | ✅ |
@@ -95,6 +98,14 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `14_periodic_ses.png` | Exp 10: periodic SES (Pareto plot) |
 | `15_resnet50_tinyimagenet.png` | Exp 11: ResNet-50 Tiny-ImageNet bar chart |
 | `15c_resnet50_tinyimagenet_percorruption.png` | Exp 11: per-corruption Tiny-ImageNet |
+| `16_wideresnet.png` | Exp 13: WRN-28-10 bar chart |
+| `16b_wideresnet_curves.png` | Exp 13: WRN-28-10 training curves |
+| `16c_wideresnet_percorruption.png` | Exp 13: per-corruption WRN |
+| `17_augmentation.png` | Exp 12: SES + Mixup/CutMix bar chart |
+| `17c_augmentation_percorruption.png` | Exp 12: per-corruption augmentation |
+| `18_vit_comparison.png` | Exp 14: ViT-Tiny vs ViT-Small comparison |
+| `18a_vit_small_bars.png` | Exp 14: ViT-Small bar chart |
+| `18b_vit_tiny_bars.png` | Exp 14: ViT-Tiny bar chart |
 
 ### Script esperimenti
 
@@ -104,6 +115,7 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `ses_phase3_resume.py` | Phase 3 senza Exp 10 (già fatto) | T4 | Superseded da dual-gpu |
 | `ses_resnet50_tinyimagenet.py` | Exp 11: ResNet-50 Tiny-ImageNet standalone | L40S | ✅ Completato |
 | `ses_kaggle_dual_gpu.py` | Exp 12 + Exp 13 (WRN) in parallelo | 2× T4 | ✅ Completato (batch 512, FP16) |
+| `ses_vit_experiment.py` | Exp 14: ViT-Small + ViT-Tiny in parallelo | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
 
 ### Risultati JSON
 
@@ -114,6 +126,9 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 | `wrn_results.json` | Exp 13: WRN-28-10 baseline vs SES (con history) |
 | `aug_results.json` | Exp 12: SES + Mixup/CutMix 6 config (con history) |
 | `dual_gpu_summary.json` | Exp 12+13: summary senza history |
+| `vit_small_results.json` | Exp 14: ViT-Small/4 baseline vs SES (con history) |
+| `vit_tiny_results.json` | Exp 14: ViT-Tiny/4 baseline vs SES (con history) |
+| `vit_summary.json` | Exp 14: summary senza history |
 
 ### Checkpoint modelli
 
@@ -144,8 +159,9 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [ ] **Aggiornare paper con Exp 12 + Exp 13**
-  - Sezioni già aggiunte nel .tex — verificare figure e summary table
+- [x] **Aggiornare paper con Exp 12 + Exp 13 + Exp 14** — ✅ 15 feb 2026
+  - Sezioni Exp 12, 13, 14 aggiunte nel .tex
+  - Abstract, intro, summary, conclusion, limitations aggiornati
   - Aggiornare `arxiv_submission.zip`
 
 ### Priorità media — rafforzare risultati
@@ -169,10 +185,11 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
   - Necessario per venue top-tier (NeurIPS, ICML)
   - Usa randomized SVD per d > 2048
 
-- [ ] **Vision Transformer (ViT)**
-  - Hook su attention output o MLP output
-  - Verifica se SES funziona su architetture non-convolutive
-  - ViT-B/16 su CIFAR-100 o Tiny-ImageNet
+- [x] **Vision Transformer (ViT)** — ✅ 15 feb 2026
+  - Hook su TransformerBlock output (mean-pool su seq dim)
+  - ViT-Small/4: +1.73pp acc, -3.1% gap, +1.33pp rob
+  - ViT-Tiny/4: +0.72pp acc, -1.5% gap, +1.31pp rob
+  - SES funziona su architetture non-convolutive!
 
 - [ ] **Fine-tuning LLM (BERT su GLUE)**
   - Testa SES su NLP
@@ -201,21 +218,23 @@ Best overall: **SES+CutMix** 73.86% acc, **SES+Mixup** 48.21% rob
 8. **ses_regularizer hardcoded `cuda:0`** → usare `activations[0].device` per multi-GPU
 9. **Threading su Kaggle non parallelizza** → GIL serializza CPU, usare subprocess con `CUDA_VISIBLE_DEVICES`
 10. **T4 non supporta BFloat16** → usare `torch.float16` con `GradScaler`, non `bfloat16`
+11. **ViT attivazioni 3D** → `output.mean(dim=1)` nell'hook per pooling su seq_len: [B,N,D]→[B,D]
+12. **ViT gradient clipping** → `clip_grad_norm_(max_norm=1.0)` necessario con AdamW su ViT
 
 ---
 
 ## Setup tecnico di riferimento
 
-| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) |
-|-----------|-------------------|------------------------|----------------------|
-| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) |
-| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem |
-| Immagini | 32×32 | 64×64 | 32×32 |
-| Batch | 256 | 256 | 512 |
-| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem |
-| Epoch | 50 | 60 | 50 |
-| Milestones | [20, 35, 45] | [25, 40, 52] | [20, 35, 45] |
-| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler |
-| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) |
-| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
-| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) |
+| Parametro | CIFAR (Exp 1-10) | Tiny-ImageNet (Exp 11) | Dual-GPU (Exp 12-13) | ViT (Exp 14) |
+|-----------|-------------------|------------------------|----------------------|--------------|
+| Architettura | ResNet-18 (11M) | ResNet-50 (25M) | R18 (11M) + WRN-28-10 (36.5M) | ViT-S (22M) + ViT-T (5.5M) |
+| Adattamento | conv1 3×3 s1, no maxpool | conv1 3×3 s1, no maxpool | idem | patch_size=4, 64 patches |
+| Immagini | 32×32 | 64×64 | 32×32 | 32×32 |
+| Batch | 256 | 256 | 512 | 512 |
+| Optimizer | SGD lr=0.1 mom=0.9 wd=5e-4 | idem | idem | AdamW lr=1e-3 wd=0.05 |
+| Epoch | 50 | 60 | 50 | 50 |
+| Schedule | MultiStep [20,35,45] | MultiStep [25,40,52] | MultiStep [20,35,45] | Cosine + warmup 5ep |
+| Precisione | FP32 | BFloat16 + GradScaler | FP16 + GradScaler | FP16 + GradScaler |
+| Hook | 9 (all blocks + avgpool) | 4 (layer4 + avgpool) | 9 (R18) / 13 (WRN) | 12 (all transformer blocks) |
+| SES default | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 | λ=0.01, β=0.7 |
+| GPU | T4 (16GB) | L40S (48GB) | 2× T4 (16GB) | 2× T4 (16GB) |
