@@ -1,0 +1,102 @@
+{
+  "vit_small_4": {
+    "baseline": {
+      "best_acc": 55.28,
+      "final_gap": 44.49837628865979,
+      "rob_mean": 34.745999999999995,
+      "robustness_detail": {
+        "gaussian_noise_s1": 55.23,
+        "gaussian_noise_s3": 54.01,
+        "gaussian_noise_s5": 51.16,
+        "gaussian_blur_s1": 30.01,
+        "gaussian_blur_s3": 15.74,
+        "gaussian_blur_s5": 10.3,
+        "contrast_s1": 52.67,
+        "contrast_s3": 21.57,
+        "contrast_s5": 5.64,
+        "brightness_s1": 55.57,
+        "brightness_s3": 53.73,
+        "brightness_s5": 50.82,
+        "shot_noise_s1": 22.45,
+        "shot_noise_s3": 21.87,
+        "shot_noise_s5": 20.42
+      },
+      "avg_epoch_time": 58.91759997844696,
+      "vram_peak_gb": 7.428150784
+    },
+    "ses": {
+      "best_acc": 57.01,
+      "final_gap": 43.10247100515464,
+      "rob_mean": 36.080000000000005,
+      "robustness_detail": {
+        "gaussian_noise_s1": 56.46,
+        "gaussian_noise_s3": 55.29,
+        "gaussian_noise_s5": 52.67,
+        "gaussian_blur_s1": 31.93,
+        "gaussian_blur_s3": 17.37,
+        "gaussian_blur_s5": 11.42,
+        "contrast_s1": 54.1,
+        "contrast_s3": 24.72,
+        "contrast_s5": 6.32,
+        "brightness_s1": 56.9,
+        "brightness_s3": 55.92,
+        "brightness_s5": 53.05,
+        "shot_noise_s1": 22.61,
+        "shot_noise_s3": 21.7,
+        "shot_noise_s5": 20.74
+      },
+      "avg_epoch_time": 79.58406282901764,
+      "vram_peak_gb": 7.447608832
+    }
+  },
+  "vit_tiny_4": {
+    "baseline": {
+      "best_acc": 56.95,
+      "final_gap": 42.23907216494846,
+      "rob_mean": 35.15333333333333,
+      "robustness_detail": {
+        "gaussian_noise_s1": 56.66,
+        "gaussian_noise_s3": 54.57,
+        "gaussian_noise_s5": 51.14,
+        "gaussian_blur_s1": 30.19,
+        "gaussian_blur_s3": 15.69,
+        "gaussian_blur_s5": 9.97,
+        "contrast_s1": 53.64,
+        "contrast_s3": 24.92,
+        "contrast_s5": 6.8,
+        "brightness_s1": 56.69,
+        "brightness_s3": 55.27,
+        "brightness_s5": 52.42,
+        "shot_noise_s1": 20.88,
+        "shot_noise_s3": 19.92,
+        "shot_noise_s5": 18.54
+      },
+      "avg_epoch_time": 27.56112778186798,
+      "vram_peak_gb": 3.61816576
+    },
+    "ses": {
+      "best_acc": 57.67,
+      "final_gap": 41.624317010309284,
+      "rob_mean": 36.46333333333334,
+      "robustness_detail": {
+        "gaussian_noise_s1": 57.14,
+        "gaussian_noise_s3": 55.36,
+        "gaussian_noise_s5": 52.1,
+        "gaussian_blur_s1": 32.45,
+        "gaussian_blur_s3": 17.25,
+        "gaussian_blur_s5": 11.02,
+        "contrast_s1": 55.35,
+        "contrast_s3": 29.06,
+        "contrast_s5": 8.0,
+        "brightness_s1": 57.39,
+        "brightness_s3": 56.07,
+        "brightness_s5": 53.4,
+        "shot_noise_s1": 22.42,
+        "shot_noise_s3": 20.83,
+        "shot_noise_s5": 19.11
+      },
+      "avg_epoch_time": 36.66201668739319,
+      "vram_peak_gb": 3.627209728
+    }
+  }
+}
