@@ -238,7 +238,7 @@ class NTXentLoss(nn.Module):
         """
         B = z_i.size(0)
         z = torch.cat([z_i, z_j], dim=0)  # [2B, D]
-        sim = torch.mm(z, z.T) / self.temperature  # [2B, 2B]
+        sim = (torch.mm(z, z.T) / self.temperature).float()  # [2B, 2B] in fp32
 
         # Mask out self-similarity
         mask = torch.eye(2 * B, device=z.device, dtype=torch.bool)
