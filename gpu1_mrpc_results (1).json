@@ -1,0 +1,32 @@
+{
+  "mrpc_baseline": {
+    "task": "mrpc",
+    "best_val_acc": 81.37254901960785,
+    "final_val_acc": 81.37254901960785,
+    "final_gap": 1.9979866946778628,
+    "avg_epoch_time": 15.162078221638998,
+    "vram_peak_gb": 13.71072256,
+    "beta": 0.5,
+    "lambda_ses": 0.0
+  },
+  "mrpc_ses_l4": {
+    "task": "mrpc",
+    "best_val_acc": 82.3529411764706,
+    "final_val_acc": 82.3529411764706,
+    "final_gap": 0.7106748949579753,
+    "avg_epoch_time": 18.29444185892741,
+    "vram_peak_gb": 13.711953408,
+    "beta": 0.5,
+    "lambda_ses": 0.01
+  },
+  "mrpc_ses_all": {
+    "task": "mrpc",
+    "best_val_acc": 83.08823529411765,
+    "final_val_acc": 83.08823529411765,
+    "final_gap": -0.6942620798319439,
+    "avg_epoch_time": 22.065638780593872,
+    "vram_peak_gb": 13.717458432,
+    "beta": 0.5,
+    "lambda_ses": 0.01
+  }
+}
