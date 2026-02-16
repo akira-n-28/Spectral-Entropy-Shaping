@@ -2,7 +2,7 @@
 
 **Autore**: Davide Le Bone
 **Ultimo aggiornamento**: 15 febbraio 2026
-**Paper**: 28+ pagine, 18 esperimenti, 35 references
+**Paper**: 32+ pagine, 20 esperimenti, 36 references
 
 ---
 
@@ -40,6 +40,8 @@ Un solo iperparametro interpretabile: β ∈ (0,1). Implementazione ~10 righe Py
 | P3 | 16 | Adaptive β Scheduling (CIFAR-100) | ✅ | **Warmup hurt (−0.73 to −1.22pp), Reverse ≈ Fixed, β=0.7 near-optimal** |
 | P3 | 17 | ViT Ablations (β sweep + layer hooking) | ✅ | **β=0.5 optimal for ViT (+2.66pp), Last-4 > All-12 (+2.33 vs +1.73pp)** |
 | P3 | 18 | SES on Attention Matrices (ViT-S) | ✅ | **Triple SES (block+attn_out+attn_wt) +2.65pp, block+attn complementari** |
+| P4 | 22 | BERT Fine-Tuning NLP (GLUE) | ✅ | **SST-2 +0.23pp, MRPC +1.72pp, gap MRPC invertito da +2.00 a −0.69pp** |
+| P4 | 28 | Effective Rank Dynamics | ✅ | **ResNet avg erank/target 1.04, ViT spread 7.1×→2.4×, valida P3** |
 
 ### Trend chiave: benefici scalano con difficoltà del task
 
@@ -131,13 +133,45 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 - Triple (57.93%) ≈ β=0.5 All-12 (57.94% Exp 17), ma con solo Last-4 hooks + info attention
 - Nota: block_l4 β=0.5 (57.31%) < separati Exp 17 (β=0.5 All-12: 57.94%, L4 β=0.7: 57.61%)
 
+### SES su BERT NLP — primo cross-domain (Exp 22)
+
+| Task | Config | Val Acc | Δ Acc | Gap |
+|------|--------|---------|-------|-----|
+| SST-2 (67k) | Baseline | 93.35% | — | 4.80pp |
+| SST-2 | SES Last-4 β=0.5 | 93.35% | +0.00 | 4.72pp |
+| SST-2 | SES All-12 β=0.5 | **93.58%** | +0.23 | **4.54pp** |
+| MRPC (3.7k) | Baseline | 81.37% | — | 2.00pp |
+| MRPC | SES Last-4 β=0.5 | 82.35% | +0.98 | 0.71pp |
+| MRPC | SES All-12 β=0.5 | **83.09%** | **+1.72** | **−0.69pp** |
+
+**Findings**:
+- SES trasferibile a NLP (BERT encoder hooks), nessuna modifica al regularizer
+- Gains scalano inversamente con dataset size: MRPC (3.7k) +1.72pp >> SST-2 (67k) +0.23pp
+- Gap MRPC invertito con All-12: da +2.00pp a −0.69pp (val > train al final epoch)
+- All-12 > Last-4 per BERT (diverso da ViT dove Last-4 > All-12)
+- BERT è pretrained → tutti i layer contengono info utile → All-12 preferibile
+
+### Effective Rank Dynamics — validazione diretta P3 (Exp 28)
+
+| Architettura | β | Baseline Acc | SES Acc | Δ Acc | Avg BL ratio | Avg SES ratio | Dist. riduzione |
+|---|---|---|---|---|---|---|---|
+| ResNet-18 | 0.7 | 73.24% | 73.61% | +0.37pp | 0.85 | **1.04** | 40.9% |
+| ViT-Small/4 | 0.5 | 49.06% | 53.01% | +3.95pp | 1.66 | **1.52** | 35.6% |
+
+**Findings**:
+- SES converge erank verso target d^β: ResNet avg ratio 1.04 (quasi perfetto), ViT 1.52
+- ViT baseline ha esplosione spettrale con depth: erank da 6.8 (block 0) a 48.3 (block 10) = 7.1× spread
+- SES comprime range ViT a 15.3–36.1 = 2.4× spread (3× riduzione)
+- Accuracy gains correlano con magnitude della correzione: ViT (divergenza maggiore) → gain maggiore (+3.95pp)
+- SES più vicino al target in 6/9 layer ResNet e 9/12 block ViT
+
 ### Predizioni teoriche
 
 | ID | Predizione | Status |
 |----|-----------|--------|
 | P1 | Reduced generalization gap | ✅ (scala con difficoltà: 0%→-1.3%→-6.1%) |
 | P2 | Improved robustness | ✅ (consistente su tutti i dataset, CNN e ViT) |
-| P3 | Controllable effective rank | ✅ |
+| P3 | Controllable effective rank | ✅ (Exp 28: ResNet avg 1.04, ViT spread 7.1×→2.4×) |
 | P4 | Reduced Jacobian κ | ✅ (2.45× riduzione) |
 | P5 | No collapse | ✅ |
 | P6 | β controls dynamics | ∼ (parziale — Exp 16: warmup hurt, reverse ≈ fixed; Exp 17: inverted-U con β=0.5 ottimale per ViT, β=0.7 per CNN) |
@@ -195,6 +229,14 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `22b_vit_attention_curves.png` | Exp 18: accuracy curves |
 | `22c_vit_attention_delta.png` | Exp 18: Δ vs baseline |
 | `22d_vit_attention_percorruption.png` | Exp 18: per-corruption breakdown |
+| `22_bert_combined.png` | Exp 22: BERT SST-2 + MRPC combined bar chart |
+| `22b_bert_delta.png` | Exp 22: Δ vs baseline |
+| `22_sst2_bert_ses.png` | Exp 22: SST-2 per-task detail |
+| `22_mrpc_bert_ses.png` | Exp 22: MRPC per-task detail |
+| `28_erank_dynamics_resnet18.png` | Exp 28: ResNet-18 erank dynamics (3 panels) |
+| `28_erank_dynamics_vitsmall4.png` | Exp 28: ViT-Small erank dynamics (3 panels) |
+| `28b_erank_convergence_resnet18.png` | Exp 28: ResNet-18 erank convergence to target |
+| `28b_erank_convergence_vitsmall4.png` | Exp 28: ViT-Small erank convergence to target |
 
 ### Script esperimenti
 
@@ -209,6 +251,9 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `ses_adaptive_beta.py` | Exp 16: Adaptive β scheduling (6 config) | 2× T4 | ✅ Completato (batch 512, FP16) |
 | `ses_vit_ablations.py` | Exp 17: ViT β sweep + layer hooking ablation (6 config) | 2× T4 | ✅ Completato (batch 512, FP16, AdamW) |
 | `ses_vit_attention.py` | Exp 18: SES on attention matrices (6 config) | 2× T4 | ✅ Completato (batch 512, FP16, AdamW, β=0.5) |
+| `ses_bert_nlp.py` | Exp 22: BERT fine-tuning SST-2/MRPC (6 config) | 2× T4 | ✅ Completato (batch 32, FP16, AdamW lr=2e-5) |
+| `ses_simclr.py` | Exp 23: SimCLR self-supervised (4 config) | 2× T4 | Pronto per esecuzione |
+| `ses_erank_dynamics.py` | Exp 28: Effective rank dynamics visualization | 2× T4 | ✅ Completato |
 
 ### Risultati JSON
 
@@ -238,6 +283,13 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 | `vit_attention_summary.json` | Exp 18: summary senza history |
 | `gpu0_attn_results.json` | Exp 18: GPU0 (block_l4, attn_out_l4, attn_wt_l4) |
 | `gpu1_attn_results.json` | Exp 18: GPU1 (dual_l4, attn_wt_all, triple_l4) |
+| `bert_nlp_summary.json` | Exp 22: summary senza history |
+| `gpu0_sst2_results.json` | Exp 22: GPU0 SST-2 summary |
+| `gpu0_sst2_results_full.json` | Exp 22: GPU0 SST-2 con history |
+| `gpu1_mrpc_results.json` | Exp 22: GPU1 MRPC summary |
+| `gpu1_mrpc_results_full.json` | Exp 22: GPU1 MRPC con history |
+| `erank_resnet18.json` | Exp 28: erank dynamics ResNet-18 |
+| `erank_vit_small.json` | Exp 28: erank dynamics ViT-Small |
 
 ### Checkpoint modelli
 
@@ -268,8 +320,8 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
   - Baseline 75.24% vs SES 74.93% (−0.31pp acc, +0.54pp rob)
   - SES neutro su architetture large — conferma che benefici scalano con task difficulty
 
-- [x] **Aggiornare paper con Exp 12–18** — ✅ 15 feb 2026
-  - Sezioni Exp 12, 13, 14, 15, 16, 17, 18 aggiunte nel .tex
+- [x] **Aggiornare paper con Exp 12–28** — ✅ 16 feb 2026
+  - Sezioni Exp 12, 13, 14, 15, 16, 17, 18, 22, 28 aggiunte nel .tex
   - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
@@ -300,10 +352,11 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
   - ViT-Tiny/4: +0.72pp acc, -1.5% gap, +1.31pp rob
   - SES funziona su architetture non-convolutive!
 
-- [ ] **Fine-tuning LLM (BERT su GLUE)**
-  - Testa SES su NLP
-  - Hook su layer output di BERT/RoBERTa
-  - Diversificherebbe enormemente i claim del paper
+- [x] **Fine-tuning BERT su GLUE (Exp 22)** — ✅ 16 feb 2026
+  - SST-2: Baseline 93.35% → SES All-12 93.58% (+0.23pp)
+  - MRPC: Baseline 81.37% → SES All-12 83.09% (+1.72pp)
+  - Gap MRPC invertito da +2.00pp a −0.69pp con All-12
+  - Gains scalano inversamente con dataset size (MRPC 3.7k >> SST-2 67k)
 
 - [ ] **Pacchettizzare come libreria pip**
   - `pip install ses-regularizer`
