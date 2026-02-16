@@ -309,7 +309,7 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
 
 ## 3. Prossimi task
 
-### Priorità alta
+### Completati
 
 - [x] **Exp 12: SES + Mixup/CutMix (CIFAR-100)** — ✅ 15 feb 2026
   - 6 config su Kaggle T4, batch 512, FP16
@@ -325,48 +325,107 @@ Raccomandazione pratica ViT: **β=0.5, last-4 blocks**.
   - Abstract, intro, summary, conclusion, future work aggiornati
   - Aggiornare `arxiv_submission.zip`
 
-### Priorità media — rafforzare risultati
+- [x] **Vision Transformer (ViT)** — ✅ 15 feb 2026
+  - ViT-Small/4: +1.73pp acc, -3.1% gap, +1.33pp rob
+  - ViT-Tiny/4: +0.72pp acc, -1.5% gap, +1.31pp rob
 
-- [ ] **Multi-seed Tiny-ImageNet (3 seed)**
-  - Exp 11 è single-seed — un reviewer lo noterà
-  - ~3h su L40S (3 run × 60 epoch)
-  - Rafforza il risultato più forte del paper
+- [x] **Fine-tuning BERT su GLUE (Exp 22)** — ✅ 16 feb 2026
+  - SST-2: +0.23pp, MRPC: +1.72pp, gap MRPC invertito
 
-- [ ] **Multi-seed Periodic SES (3 seed)**
+---
+
+### PRIORITÀ ALTA — Rafforzare per peer review
+
+- [ ] **Exp 29: Multi-seed Tiny-ImageNet (3 seed)**
+  - Exp 11 è single-seed ed è il risultato più forte del paper (+2.58pp acc)
+  - Un reviewer lo noterà immediatamente — rischio rejection
+  - GPU: L40S, 3 run × 60 epoch
+  - Script: adattare `ses_resnet50_tinyimagenet.py` con loop su seed [42, 123, 456]
+
+- [ ] **Exp 30: Multi-seed ViT-Small CIFAR-100 (3 seed)**
+  - Exp 14/17 single-seed con gains grandi (+2.66pp β=0.5)
+  - Serve conferma statistica che il gain non è rumore
+  - GPU: 2×T4
+  - Script: adattare `ses_vit_experiment.py` con 3 seed, config β=0.5 last-4
+
+- [ ] **Exp 23: SimCLR Self-Supervised Learning**
+  - Script già pronto (`ses_simclr.py`) — solo da eseguire
+  - Testa prevenzione collasso SSL: claim nel paper (Sec. Future Work) non ancora validato
+  - 4 config: baseline, SES β=0.7 all, β=0.5, β=0.7 last-3
+  - GPU: 2×T4, 200 pretrain + 100 linear probe epoch
+
+### PRIORITÀ MEDIA — Completare la storia
+
+- [ ] **Exp 31: Multi-seed Periodic SES (3 seed)**
   - Exp 10 è single-seed
-  - ~6h su T4 (5 config × 3 seed)
-  - Meno critico perché il trend è chiaro dal Pareto plot
+  - Meno critico perché il trend Pareto è chiaro, ma rafforza credibilità
+  - GPU: T4, 5 config × 3 seed
+  - Script: adattare `ses_phase3.py`
+
+- [ ] **Exp 32: Multi-seed BERT MRPC (3 seed)**
+  - MRPC ha solo 3.7k samples → alta varianza intrinseca
+  - Il +1.72pp potrebbe essere rumore da singolo seed — serve conferma
+  - GPU: 2×T4 (veloce, ~3 epoch per run)
+  - Script: adattare `ses_bert_nlp.py` con 3 seed
+
+- [ ] **Exp 33: SES + Adversarial Training (PGD-AT)**
+  - Il paper misura robustezza solo su corruzioni (noise, blur, weather)
+  - Adversarial robustness (PGD/AutoAttack) è un claim più forte
+  - I reviewer di venue ML lo chiederanno sicuramente
+  - Setup: CIFAR-100, ResNet-18, PGD-7 ε=8/255 durante training
+  - GPU: 2×T4 (training ~3-4× più lento per PGD inner loop)
+
+- [ ] **Exp 34: Transfer learning (fine-tuning pretrained)**
+  - Fine-tuning pretrained ResNet-50 su CUB-200 / Stanford Cars / Flowers-102
+  - Testa SES in regime few-shot/transfer dove generalization gap è critico
+  - Complementa Exp 22 (BERT è transfer, ma NLP)
+  - GPU: 2×T4
 
 - [ ] **Aggiornare system_prompt.md** dopo ogni esperimento completato
 
-### Priorità bassa — estensioni future (post-arXiv v1)
+### PRIORITÀ BASSA — Estensioni post-arXiv v1
 
-- [ ] **ImageNet-100 o full ImageNet**
-  - Richiede multi-GPU, giorni di compute
+- [ ] **Exp 35: ImageNet-100 (subset 100 classi)**
+  - Scala intermedia prima di full ImageNet
+  - Valida difficulty-scaling hypothesis su larga scala
+  - Richiede randomized SVD per d > 2048, multi-GPU
   - Necessario per venue top-tier (NeurIPS, ICML)
-  - Usa randomized SVD per d > 2048
 
-- [x] **Vision Transformer (ViT)** — ✅ 15 feb 2026
-  - Hook su TransformerBlock output (mean-pool su seq dim)
-  - ViT-Small/4: +1.73pp acc, -3.1% gap, +1.33pp rob
-  - ViT-Tiny/4: +0.72pp acc, -1.5% gap, +1.31pp rob
-  - SES funziona su architetture non-convolutive!
+- [ ] **Exp 36: Implementare SVD trick**
+  - Quando B < d, usare SVD su H_c (B×d) invece di eigendecomposition su Σ (d×d)
+  - Riduce costo da O(d³) a O(B²d) — ~64× speedup per d=2048, B=256
+  - Matematicamente equivalente, nessun impatto sui risultati
+  - Prerequisito per ImageNet-scale experiments
 
-- [x] **Fine-tuning BERT su GLUE (Exp 22)** — ✅ 16 feb 2026
-  - SST-2: Baseline 93.35% → SES All-12 93.58% (+0.23pp)
-  - MRPC: Baseline 81.37% → SES All-12 83.09% (+1.72pp)
-  - Gap MRPC invertito da +2.00pp a −0.69pp con All-12
-  - Gains scalano inversamente con dataset size (MRPC 3.7k >> SST-2 67k)
+- [ ] **Exp 37: GPT-2 fine-tuning NLP**
+  - Estensione da BERT (encoder-only) a decoder-only architecture
+  - Valida SES sull'architettura dominante in NLP moderno
+  - Setup: GPT-2 small (124M), fine-tuning su WikiText-103 o task downstream
+
+- [ ] **Exp 38: Per-layer adaptive β_l(t)**
+  - β diverso per ogni layer, adattato durante training
+  - Teoricamente motivato ma Exp 16 suggerisce che fixed β è quasi ottimale
+  - Potrebbe sbloccare gain addizionali su architetture deep
 
 - [ ] **Pacchettizzare come libreria pip**
   - `pip install ses-regularizer`
   - API: `SESRegularizer(model, beta=0.7, lambda_ses=0.01, hook_last_n=3, every_k=10)`
   - Aumenta impatto pratico e citazioni
 
-- [ ] **Implementare SVD trick**
-  - Quando B < d, usare SVD su H_c (B×d) invece di eigendecomposition su Σ (d×d)
-  - Riduce costo da O(d³) a O(B²d) — ~64× speedup per d=2048, B=256
-  - Matematicamente equivalente, nessun impatto sui risultati
+- [ ] **Exp 40: SES per architecture search / pruning**
+  - Usare entropia spettrale come segnale per identificare layer over/under-parameterized
+  - Layer con erank << target → candidati per pruning
+  - Layer con erank >> target → candidati per espansione
+
+### Ordine di esecuzione raccomandato
+
+1. **Exp 29** — multi-seed Tiny-ImageNet (il più urgente, singolo seed sul risultato chiave)
+2. **Exp 30** — multi-seed ViT-Small (secondo più urgente)
+3. **Exp 23** — SimCLR (script già pronto, solo da lanciare)
+4. **Exp 32** — multi-seed BERT MRPC (veloce e importante per credibilità NLP)
+5. **Exp 33** — adversarial training PGD (i reviewer lo chiederanno)
+6. **Exp 31** — multi-seed periodic SES (nice to have)
+7. Resto in ordine di opportunità e compute disponibile
 
 ### Bug fix critici da NON reintrodurre
 
